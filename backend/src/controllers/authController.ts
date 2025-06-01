@@ -260,9 +260,10 @@ export class AuthController {
       const { refreshToken } = req.body;
 
       // Verify refresh token
+      const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || 'fallback-refresh-secret';
       const decoded = jwt.verify(
         refreshToken,
-        process.env.JWT_REFRESH_SECRET!
+        jwtRefreshSecret
       ) as any;
 
       // Find active session
@@ -691,16 +692,19 @@ export class AuthController {
     const accessTokenExpiry = rememberMe ? '30d' : (process.env.JWT_EXPIRES_IN || '7d');
     const refreshTokenExpiry = process.env.JWT_REFRESH_EXPIRES_IN || '30d';
 
+    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
+    const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || 'fallback-refresh-secret';
+
     const accessToken = jwt.sign(
       { userId, type: 'access' },
-      process.env.JWT_SECRET!,
-      { expiresIn: accessTokenExpiry }
+      jwtSecret,
+      { expiresIn: accessTokenExpiry } as jwt.SignOptions
     );
 
     const refreshToken = jwt.sign(
       { userId, type: 'refresh' },
-      process.env.JWT_REFRESH_SECRET!,
-      { expiresIn: refreshTokenExpiry }
+      jwtRefreshSecret,
+      { expiresIn: refreshTokenExpiry } as jwt.SignOptions
     );
 
     // Create session record

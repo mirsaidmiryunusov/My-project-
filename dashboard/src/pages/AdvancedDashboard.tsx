@@ -617,7 +617,7 @@ const AdvancedDashboard: React.FC = () => {
                 {connectionStatus === 'connected' ? 'Live' : 'Disconnected'}
               </Badge>
               <Text fontSize="sm" color="gray.500">
-                Welcome back, {user?.name?.split(' ')[0]}!
+                Welcome back, {user?.firstName}!
               </Text>
               <Text fontSize="sm" color="gray.500">
                 Last updated: {new Date().toLocaleTimeString()}

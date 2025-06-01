@@ -277,10 +277,10 @@ const Header: React.FC<{ onMenuClick: () => void }> = ({ onMenuClick }) => {
           <Menu>
             <MenuButton>
               <HStack spacing={2}>
-                <Avatar size="sm" name={user?.name} />
+                <Avatar size="sm" name={`${user?.firstName} ${user?.lastName}`} />
                 <VStack spacing={0} align="start" display={{ base: 'none', md: 'flex' }}>
                   <Text fontSize="sm" fontWeight="medium">
-                    {user?.name}
+                    {`${user?.firstName} ${user?.lastName}`}
                   </Text>
                   <Text fontSize="xs" color="gray.500">
                     {user?.role}

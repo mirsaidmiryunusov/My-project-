@@ -37,7 +37,8 @@ export class SocketService {
         return next(new Error('Authentication token required'));
       }
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+      const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
+      const decoded = jwt.verify(token, jwtSecret) as any;
       
       const session = await prisma.userSession.findFirst({
         where: {

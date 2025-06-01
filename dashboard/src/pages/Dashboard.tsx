@@ -31,6 +31,13 @@ import {
   SimpleGrid,
   Flex,
   Spacer,
+  Alert,
+  AlertIcon,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
 } from '@chakra-ui/react';
 import {
   FiPhone,
@@ -48,8 +55,14 @@ import {
   FiCheckCircle,
 } from 'react-icons/fi';
 import { useSystemStore } from '../stores/systemStore';
+import { useDashboardStore, formatMetricValue, getStatusColor } from '../stores/dashboardStore';
 import { useAuthStore } from '../stores/authStore';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import RealTimeMonitor from '../components/RealTimeMonitor';
+import PerformanceDashboard from '../components/PerformanceDashboard';
+import AIInsights from '../components/AIInsights';
+import SystemMonitor from '../components/SystemMonitor';
+import NotificationCenter from '../components/NotificationCenter';
 
 interface MetricCardProps {
   title: string;
@@ -193,7 +206,23 @@ const SystemHealthCard: React.FC<SystemHealthCardProps> = ({ title, status, deta
 
 const Dashboard: React.FC = () => {
   const { user } = useAuthStore();
-  const { systemStatus, metrics, refreshSystemStatus, isLoading } = useSystemStore();
+  const { systemStatus, metrics: systemMetrics, refreshSystemStatus, isLoading: systemLoading } = useSystemStore();
+  const { 
+    metrics, 
+    recentCalls, 
+    campaigns, 
+    analytics, 
+    loading, 
+    error, 
+    lastUpdated,
+    isConnected,
+    liveMetrics,
+    fetchDashboardData,
+    connectRealTime,
+    disconnectRealTime,
+    refreshData,
+    clearError,
+  } = useDashboardStore();
   const [timeRange, setTimeRange] = useState('24h');
 
   const cardBg = useColorModeValue('white', 'gray.800');
@@ -202,16 +231,43 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     // Initial load
     refreshSystemStatus();
-  }, [refreshSystemStatus]);
+    fetchDashboardData();
+  }, [refreshSystemStatus, fetchDashboardData]);
 
-  // Mock data for charts
-  const performanceData = [
-    { time: '00:00', calls: 45, sms: 120, revenue: 1200 },
-    { time: '04:00', calls: 32, sms: 89, revenue: 980 },
-    { time: '08:00', calls: 67, sms: 156, revenue: 1850 },
-    { time: '12:00', calls: 89, sms: 203, revenue: 2340 },
-    { time: '16:00', calls: 76, sms: 178, revenue: 2100 },
-    { time: '20:00', calls: 54, sms: 134, revenue: 1650 },
+  useEffect(() => {
+    // Connect to real-time updates
+    connectRealTime();
+    
+    return () => {
+      disconnectRealTime();
+    };
+  }, [connectRealTime, disconnectRealTime]);
+
+  useEffect(() => {
+    // Auto-refresh data every 5 minutes
+    const interval = setInterval(() => {
+      refreshData();
+    }, 5 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [refreshData]);
+
+  // Prepare chart data from analytics
+  const performanceData = analytics?.callVolume?.map(item => ({
+    time: new Date(item.date).toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    }),
+    calls: item.calls,
+    successful: item.successful,
+    failed: item.failed,
+  })) || [
+    { time: '00:00', calls: 45, successful: 35, failed: 10 },
+    { time: '04:00', calls: 32, successful: 28, failed: 4 },
+    { time: '08:00', calls: 67, successful: 58, failed: 9 },
+    { time: '12:00', calls: 89, successful: 76, failed: 13 },
+    { time: '16:00', calls: 76, successful: 65, failed: 11 },
+    { time: '20:00', calls: 54, successful: 47, failed: 7 },
   ];
 
   const modemStatusData = [
@@ -219,41 +275,28 @@ const Dashboard: React.FC = () => {
     { name: 'Offline', value: systemStatus.totalModems - systemStatus.modemsOnline, color: '#EF4444' },
   ];
 
+  // Prepare recent activities from real data
   const recentActivities = [
-    {
-      id: 1,
+    ...recentCalls.slice(0, 3).map(call => ({
+      id: call.id,
       type: 'call',
-      message: 'New inbound call from +1-555-0123',
-      timestamp: '2 minutes ago',
+      message: `Call ${call.status} - ${call.customerName} (${call.phoneNumber})`,
+      timestamp: new Date(call.timestamp).toLocaleString(),
+      status: call.status === 'completed' ? 'success' : call.status === 'failed' ? 'error' : 'active',
+    })),
+    ...campaigns.filter(c => c.status === 'active').slice(0, 2).map(campaign => ({
+      id: campaign.id,
+      type: 'campaign',
+      message: `Campaign "${campaign.name}" - ${campaign.successfulCalls}/${campaign.totalCalls} calls completed`,
+      timestamp: new Date(campaign.startDate).toLocaleString(),
       status: 'active',
-    },
-    {
-      id: 2,
-      type: 'sms',
-      message: 'SMS campaign "Holiday Sale" completed',
-      timestamp: '15 minutes ago',
-      status: 'completed',
-    },
-    {
-      id: 3,
-      type: 'system',
-      message: 'Modem #23 came back online',
-      timestamp: '32 minutes ago',
-      status: 'resolved',
-    },
-    {
-      id: 4,
-      type: 'revenue',
-      message: 'New customer conversion: $450 revenue',
-      timestamp: '1 hour ago',
-      status: 'success',
-    },
-  ];
+    })),
+  ].slice(0, 5);
 
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'call': return FiPhone;
-      case 'sms': return FiMessageSquare;
+      case 'campaign': return FiMessageSquare;
       case 'system': return FiCpu;
       case 'revenue': return FiDollarSign;
       default: return FiActivity;
@@ -272,26 +315,63 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Get current user name
+  const userName = user?.firstName || 'User';
+
   return (
     <Box>
+      {/* Error Alert */}
+      {error && (
+        <Alert status="error" mb={4}>
+          <AlertIcon />
+          <Box>
+            <Text fontWeight="bold">Error loading dashboard data</Text>
+            <Text fontSize="sm">{error}</Text>
+          </Box>
+          <Spacer />
+          <Button size="sm" onClick={clearError}>
+            Dismiss
+          </Button>
+        </Alert>
+      )}
+
       {/* Header */}
       <VStack align="start" spacing={4} mb={8}>
         <HStack justify="space-between" w="full">
           <VStack align="start" spacing={1}>
-            <Heading size="lg">
-              Welcome back, {user?.name?.split(' ')[0]}!
-            </Heading>
-            <Text color="gray.500">
-              Here's what's happening with your call center today.
-            </Text>
+            <HStack>
+              <Heading size="lg">
+                Welcome back, {userName}!
+              </Heading>
+              {isConnected && (
+                <Tooltip label="Real-time updates active">
+                  <Box>
+                    <FiWifi color="green" size={16} />
+                  </Box>
+                </Tooltip>
+              )}
+            </HStack>
+            <HStack>
+              <Text color="gray.500">
+                Here's what's happening with your call center today.
+              </Text>
+              {lastUpdated && (
+                <Text fontSize="sm" color="gray.400">
+                  Last updated: {new Date(lastUpdated).toLocaleTimeString()}
+                </Text>
+              )}
+            </HStack>
           </VStack>
           <HStack>
             <Button
               leftIcon={<FiRefreshCw />}
               variant="outline"
               size="sm"
-              onClick={refreshSystemStatus}
-              isLoading={isLoading}
+              onClick={() => {
+                refreshSystemStatus();
+                refreshData();
+              }}
+              isLoading={loading || systemLoading}
             >
               Refresh
             </Button>
@@ -306,43 +386,57 @@ const Dashboard: React.FC = () => {
         </HStack>
       </VStack>
 
-      {/* Key Metrics */}
+      {/* Advanced Dashboard Tabs */}
+      <Tabs variant="enclosed" colorScheme="blue">
+        <TabList>
+          <Tab>📊 Overview</Tab>
+          <Tab>🔄 Real-Time</Tab>
+          <Tab>⚡ Performance</Tab>
+          <Tab>🧠 AI Insights</Tab>
+          <Tab>🖥️ System Monitor</Tab>
+          <Tab>🔔 Notifications</Tab>
+        </TabList>
+
+        <TabPanels>
+          {/* Overview Tab - Original Dashboard Content */}
+          <TabPanel px={0}>
+            {/* Key Metrics */}
       <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6} mb={8}>
         <MetricCard
-          title="Active Calls"
-          value={systemStatus.activeCalls}
-          change={12.5}
-          changeLabel="vs yesterday"
+          title="Total Calls"
+          value={metrics?.totalCalls || liveMetrics.totalCalls || 0}
+          change={metrics?.monthlyGrowth || 0}
+          changeLabel="vs last month"
           icon={FiPhone}
           color="blue"
-          isLoading={isLoading}
+          isLoading={loading}
         />
         <MetricCard
-          title="SMS Queue"
-          value={systemStatus.smsQueue}
-          change={-8.2}
-          changeLabel="vs yesterday"
+          title="Active Campaigns"
+          value={metrics?.activeCampaigns || campaigns.filter(c => c.status === 'active').length || 0}
+          change={5.2}
+          changeLabel="vs last month"
           icon={FiMessageSquare}
           color="green"
-          isLoading={isLoading}
+          isLoading={loading}
         />
         <MetricCard
-          title="Online Agents"
-          value={systemStatus.onlineAgents}
-          change={5.1}
-          changeLabel="vs yesterday"
+          title="Total Contacts"
+          value={metrics?.totalContacts || 0}
+          change={8.1}
+          changeLabel="vs last month"
           icon={FiUsers}
           color="purple"
-          isLoading={isLoading}
+          isLoading={loading}
         />
         <MetricCard
-          title="Today's Revenue"
-          value={`$${systemStatus.todayRevenue?.toLocaleString()}`}
-          change={18.7}
-          changeLabel="vs yesterday"
-          icon={FiDollarSign}
+          title="Conversion Rate"
+          value={`${(metrics?.conversionRate || 0).toFixed(1)}%`}
+          change={metrics?.conversionRate ? (metrics.conversionRate - 15.2) : 0}
+          changeLabel="vs last month"
+          icon={FiTrendingUp}
           color="orange"
-          isLoading={isLoading}
+          isLoading={loading}
         />
       </SimpleGrid>
 
@@ -577,6 +671,44 @@ const Dashboard: React.FC = () => {
           </Card>
         </GridItem>
       </Grid>
+          </TabPanel>
+
+          {/* Real-Time Monitor Tab */}
+          <TabPanel px={0}>
+            <Grid templateColumns={{ base: "1fr", lg: "1fr 300px" }} gap={6}>
+              <GridItem>
+                <VStack spacing={6} align="stretch">
+                  <Text fontSize="lg" fontWeight="bold">Real-Time System Monitor</Text>
+                  <PerformanceDashboard />
+                </VStack>
+              </GridItem>
+              <GridItem>
+                <RealTimeMonitor />
+              </GridItem>
+            </Grid>
+          </TabPanel>
+
+          {/* Performance Dashboard Tab */}
+          <TabPanel px={0}>
+            <PerformanceDashboard />
+          </TabPanel>
+
+          {/* AI Insights Tab */}
+          <TabPanel px={0}>
+            <AIInsights />
+          </TabPanel>
+
+          {/* System Monitor Tab */}
+          <TabPanel px={0}>
+            <SystemMonitor />
+          </TabPanel>
+
+          {/* Notifications Tab */}
+          <TabPanel px={0}>
+            <NotificationCenter />
+          </TabPanel>
+        </TabPanels>
+      </Tabs>
     </Box>
   );
 };

@@ -25,6 +25,7 @@ import { DashboardLayout } from './components/Layout/DashboardLayout';
 const LoginPage = React.lazy(() => import('./pages/Login'));
 const DashboardPage = React.lazy(() => import('./pages/Dashboard'));
 const AdvancedDashboard = React.lazy(() => import('./pages/AdvancedDashboard'));
+const SubscriptionPage = React.lazy(() => import('./pages/Subscription'));
 
 // Error components
 import { ErrorFallback } from './components/Error/ErrorFallback';
@@ -64,6 +65,12 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 };
 
 const App: React.FC = () => {
+  const { initializeAuth } = useAuthStore();
+
+  React.useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
+
   return (
     <HelmetProvider>
       <ChakraProvider theme={theme}>
@@ -90,6 +97,13 @@ const App: React.FC = () => {
                       <ProtectedRoute>
                         <DashboardLayout>
                           <DashboardPage />
+                        </DashboardLayout>
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/subscription" element={
+                      <ProtectedRoute>
+                        <DashboardLayout>
+                          <SubscriptionPage />
                         </DashboardLayout>
                       </ProtectedRoute>
                     } />

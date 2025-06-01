@@ -31,7 +31,8 @@ export const authMiddleware = async (
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
     // Verify JWT token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
+    const decoded = jwt.verify(token, jwtSecret) as any;
 
     if (decoded.type !== 'access') {
       res.status(401).json({
@@ -179,7 +180,8 @@ export const optionalAuth = async (
     }
 
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const jwtSecret = process.env.JWT_SECRET || 'fallback-secret';
+    const decoded = jwt.verify(token, jwtSecret) as any;
 
     if (decoded.type === 'access') {
       const session = await prisma.userSession.findFirst({

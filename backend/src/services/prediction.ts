@@ -393,8 +393,8 @@ export class PredictionService {
     }
 
     // Call success rate
-    const completedCalls = customer.calls.filter(c => c.status === 'COMPLETED');
-    const successfulCalls = completedCalls.filter(c => 
+    const completedCalls = customer.calls.filter((c: any) => c.status === 'COMPLETED');
+    const successfulCalls = completedCalls.filter((c: any) => 
       c.outcome && ['SALE', 'APPOINTMENT', 'INTERESTED'].includes(c.outcome)
     );
     
@@ -407,7 +407,7 @@ export class PredictionService {
     }
 
     // Negative sentiment
-    const negativeCalls = customer.calls.filter(c => c.sentiment === 'NEGATIVE');
+    const negativeCalls = customer.calls.filter((c: any) => c.sentiment === 'NEGATIVE');
     if (negativeCalls.length > 0) {
       riskScore += 25;
       factors.push('Recent negative interactions');
@@ -415,7 +415,7 @@ export class PredictionService {
     }
 
     // Call frequency decline
-    const recentCalls = customer.calls.filter(c => 
+    const recentCalls = customer.calls.filter((c: any) => 
       c.createdAt > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
     );
     

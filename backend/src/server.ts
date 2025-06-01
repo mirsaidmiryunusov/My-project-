@@ -30,6 +30,7 @@ import customerRoutes from './routes/customers';
 import campaignRoutes from './routes/campaigns';
 import analyticsRoutes from './routes/analytics';
 import dashboardRoutes from './routes/dashboard';
+import subscriptionRoutes from './routes/subscription';
 
 // Import services
 import { DatabaseService } from './services/database';
@@ -142,6 +143,7 @@ class GeminiVoiceConnectServer {
           campaigns: '/api/campaigns',
           analytics: '/api/analytics',
           dashboard: '/api/dashboard',
+          subscription: '/api/subscription',
         },
         documentation: '/api/docs',
       });
@@ -161,6 +163,7 @@ class GeminiVoiceConnectServer {
     apiRouter.use('/campaigns', authMiddleware, campaignRoutes);
     apiRouter.use('/analytics', authMiddleware, analyticsRoutes);
     apiRouter.use('/dashboard', authMiddleware, dashboardRoutes);
+    apiRouter.use('/subscription', subscriptionRoutes);
 
     this.app.use('/api', apiRouter);
   }

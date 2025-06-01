@@ -324,7 +324,6 @@ export class CampaignController {
 
       const result = await prisma.campaignCustomer.createMany({
         data: campaignCustomersData,
-        skipDuplicates: true,
       });
 
       res.json({

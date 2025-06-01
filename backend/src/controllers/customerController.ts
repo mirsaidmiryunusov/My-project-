@@ -321,7 +321,6 @@ export class CustomerController {
 
       const result = await prisma.customer.createMany({
         data: customersData,
-        skipDuplicates: true,
       });
 
       res.status(201).json({

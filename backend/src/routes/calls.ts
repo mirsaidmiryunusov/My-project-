@@ -59,7 +59,7 @@ router.post(
   '/',
   requirePermission('calls:write'),
   [
-    body('phoneNumber').isMobilePhone().withMessage('Valid phone number is required'),
+    body('phoneNumber').isMobilePhone('any').withMessage('Valid phone number is required'),
     body('direction').isIn(['INBOUND', 'OUTBOUND']).withMessage('Invalid direction'),
     body('customerId').optional().isString().withMessage('Customer ID must be a string'),
     body('campaignId').optional().isString().withMessage('Campaign ID must be a string'),
@@ -173,7 +173,7 @@ router.post(
   requirePermission('calls:write'),
   [
     body('calls').isArray({ min: 1, max: 100 }).withMessage('Calls must be an array with 1-100 items'),
-    body('calls.*.phoneNumber').isMobilePhone().withMessage('Valid phone number is required'),
+    body('calls.*.phoneNumber').isMobilePhone('any').withMessage('Valid phone number is required'),
     body('calls.*.direction').isIn(['INBOUND', 'OUTBOUND']).withMessage('Invalid direction'),
     body('calls.*.customerId').optional().isString().withMessage('Customer ID must be a string'),
     body('calls.*.campaignId').optional().isString().withMessage('Campaign ID must be a string'),

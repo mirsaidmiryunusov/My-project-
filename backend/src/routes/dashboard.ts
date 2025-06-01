@@ -14,6 +14,20 @@ const router = express.Router();
 const dashboardController = new DashboardController();
 
 /**
+ * @route   GET /api/dashboard/metrics
+ * @desc    Get dashboard metrics for main dashboard
+ * @access  Private
+ */
+router.get('/metrics', dashboardController.getOverview.bind(dashboardController));
+
+/**
+ * @route   GET /api/dashboard/recent-calls
+ * @desc    Get recent calls for dashboard
+ * @access  Private
+ */
+router.get('/recent-calls', dashboardController.getLiveCalls.bind(dashboardController));
+
+/**
  * @route   GET /api/dashboard/overview
  * @desc    Get dashboard overview with key metrics
  * @access  Private
