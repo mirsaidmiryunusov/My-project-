@@ -7,25 +7,25 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { apiClient, wsClient, User as ApiUser, LoginCredentials, RegisterData } from '../services/api';
 
 export interface User {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  role: 'admin' | 'operator' | 'agent' | 'viewer';
+  role: string;
   tenantId: string;
   avatar?: string;
   permissions: string[];
   lastLogin?: string;
-  preferences: {
-    theme: 'light' | 'dark' | 'system';
+  preferences?: {
+    theme: string;
     language: string;
     timezone: string;
-    notifications: {
-      email: boolean;
-      sms: boolean;
-      push: boolean;
-    };
+    emailNotifications: boolean;
+    smsNotifications: boolean;
+    pushNotifications: boolean;
   };
 }
 
@@ -38,12 +38,17 @@ interface AuthState {
 }
 
 interface AuthActions {
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<boolean>;
+  register: (data: RegisterData) => Promise<boolean>;
+  logout: () => Promise<void>;
   refreshToken: () => Promise<void>;
   updateUser: (updates: Partial<User>) => void;
+  updateProfile: (updates: Partial<User>) => Promise<boolean>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
+  getCurrentUser: () => Promise<void>;
   clearError: () => void;
   setLoading: (loading: boolean) => void;
+  initializeAuth: () => Promise<void>;
 }
 
 type AuthStore = AuthState & AuthActions;
@@ -65,63 +70,119 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true, error: null });
         
         try {
-          // Simulate API call
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          const response = await apiClient.login({ email, password });
           
-          // Mock successful login
-          const mockUser: User = {
-            id: '1',
-            name: 'John Doe',
-            email: email,
-            role: 'admin',
-            tenantId: 'tenant_1',
-            avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face',
-            permissions: [
-              'calls:read',
-              'calls:write',
-              'sms:read',
-              'sms:write',
-              'customers:read',
-              'customers:write',
-              'campaigns:read',
-              'campaigns:write',
-              'analytics:read',
-              'system:read',
-              'system:write',
-              'settings:read',
-              'settings:write',
-            ],
-            lastLogin: new Date().toISOString(),
-            preferences: {
-              theme: 'system',
-              language: 'en',
-              timezone: 'UTC',
-              notifications: {
-                email: true,
-                sms: false,
-                push: true,
+          if (response.success && response.data) {
+            const { user, accessToken, refreshToken } = response.data;
+            
+            // Store tokens
+            localStorage.setItem('accessToken', accessToken);
+            localStorage.setItem('refreshToken', refreshToken);
+            
+            // Set API client token
+            apiClient.setToken(accessToken);
+            
+            // Connect WebSocket
+            wsClient.connect(accessToken);
+            
+            set({
+              user: {
+                id: user.id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                role: user.role,
+                tenantId: user.tenantId,
+                permissions: user.permissions,
+                preferences: user.preferences,
               },
-            },
-          };
-
-          const mockToken = 'mock_jwt_token_' + Date.now();
-
-          set({
-            user: mockUser,
-            token: mockToken,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null,
-          });
+              token: accessToken,
+              isAuthenticated: true,
+              isLoading: false,
+              error: null,
+            });
+            
+            return true;
+          } else {
+            set({
+              isLoading: false,
+              error: response.message || 'Login failed',
+            });
+            return false;
+          }
         } catch (error) {
           set({
             isLoading: false,
             error: error instanceof Error ? error.message : 'Login failed',
           });
+          return false;
         }
       },
 
-      logout: () => {
+      register: async (data: RegisterData) => {
+        set({ isLoading: true, error: null });
+        
+        try {
+          const response = await apiClient.register(data);
+          
+          if (response.success && response.data) {
+            const { user, accessToken, refreshToken } = response.data;
+            
+            // Store tokens
+            localStorage.setItem('accessToken', accessToken);
+            localStorage.setItem('refreshToken', refreshToken);
+            
+            // Set API client token
+            apiClient.setToken(accessToken);
+            
+            // Connect WebSocket
+            wsClient.connect(accessToken);
+            
+            set({
+              user: {
+                id: user.id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                role: user.role,
+                tenantId: user.tenantId,
+                permissions: user.permissions,
+                preferences: user.preferences,
+              },
+              token: accessToken,
+              isAuthenticated: true,
+              isLoading: false,
+              error: null,
+            });
+            
+            return true;
+          } else {
+            set({
+              isLoading: false,
+              error: response.message || 'Registration failed',
+            });
+            return false;
+          }
+        } catch (error) {
+          set({
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Registration failed',
+          });
+          return false;
+        }
+      },
+
+      logout: async () => {
+        try {
+          await apiClient.logout();
+        } catch (error) {
+          console.error('Logout error:', error);
+        }
+        
+        // Clear tokens and disconnect
+        apiClient.clearAuth();
+        wsClient.disconnect();
+        
         set({
           user: null,
           token: null,
@@ -131,17 +192,31 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       refreshToken: async () => {
-        const { token } = get();
-        if (!token) return;
+        const refreshToken = localStorage.getItem('refreshToken');
+        if (!refreshToken) {
+          get().logout();
+          return;
+        }
 
         try {
-          // Simulate token refresh
-          await new Promise(resolve => setTimeout(resolve, 500));
+          const response = await apiClient.refreshToken(refreshToken);
           
-          const newToken = 'refreshed_token_' + Date.now();
-          set({ token: newToken });
+          if (response.success && response.data) {
+            const { accessToken, refreshToken: newRefreshToken } = response.data;
+            
+            // Update tokens
+            localStorage.setItem('accessToken', accessToken);
+            localStorage.setItem('refreshToken', newRefreshToken);
+            
+            // Set API client token
+            apiClient.setToken(accessToken);
+            
+            set({ token: accessToken });
+          } else {
+            get().logout();
+          }
         } catch (error) {
-          // If refresh fails, logout user
+          console.error('Token refresh failed:', error);
           get().logout();
         }
       },
@@ -152,6 +227,109 @@ export const useAuthStore = create<AuthStore>()(
           set({
             user: { ...user, ...updates },
           });
+        }
+      },
+
+      updateProfile: async (updates: Partial<User>) => {
+        set({ isLoading: true, error: null });
+        
+        try {
+          const response = await apiClient.updateProfile(updates);
+          
+          if (response.success && response.data) {
+            const updatedUser = response.data;
+            set({
+              user: {
+                id: updatedUser.id,
+                firstName: updatedUser.firstName,
+                lastName: updatedUser.lastName,
+                email: updatedUser.email,
+                role: updatedUser.role,
+                tenantId: updatedUser.tenantId,
+                permissions: updatedUser.permissions,
+                preferences: updatedUser.preferences,
+              },
+              isLoading: false,
+            });
+            return true;
+          } else {
+            set({
+              isLoading: false,
+              error: response.message || 'Failed to update profile',
+            });
+            return false;
+          }
+        } catch (error) {
+          set({
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Failed to update profile',
+          });
+          return false;
+        }
+      },
+
+      changePassword: async (currentPassword: string, newPassword: string) => {
+        set({ isLoading: true, error: null });
+        
+        try {
+          const response = await apiClient.changePassword(currentPassword, newPassword);
+          
+          if (response.success) {
+            set({ isLoading: false });
+            return true;
+          } else {
+            set({
+              isLoading: false,
+              error: response.message || 'Failed to change password',
+            });
+            return false;
+          }
+        } catch (error) {
+          set({
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Failed to change password',
+          });
+          return false;
+        }
+      },
+
+      getCurrentUser: async () => {
+        try {
+          const response = await apiClient.getCurrentUser();
+          
+          if (response.success && response.data) {
+            const user = response.data;
+            set({
+              user: {
+                id: user.id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                role: user.role,
+                tenantId: user.tenantId,
+                permissions: user.permissions,
+                preferences: user.preferences,
+              },
+            });
+          }
+        } catch (error) {
+          console.error('Failed to get current user:', error);
+        }
+      },
+
+      initializeAuth: async () => {
+        const token = localStorage.getItem('accessToken');
+        if (token) {
+          apiClient.setToken(token);
+          set({ token, isAuthenticated: true });
+          
+          try {
+            await get().getCurrentUser();
+            wsClient.connect(token);
+          } catch (error) {
+            console.error('Failed to initialize auth:', error);
+            get().logout();
+          }
         }
       },
 

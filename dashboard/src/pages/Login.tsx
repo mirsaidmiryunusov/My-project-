@@ -91,18 +91,20 @@ const Login: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      await login(email, password);
+      const success = await login(email, password);
       
-      toast({
-        title: 'Login Successful',
-        description: 'Welcome to GeminiVoiceConnect!',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
-      
-      // Navigate to intended destination or dashboard
-      navigate(from, { replace: true });
+      if (success) {
+        toast({
+          title: 'Login Successful',
+          description: 'Welcome to GeminiVoiceConnect!',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+        
+        // Navigate to intended destination or dashboard
+        navigate(from, { replace: true });
+      }
     } catch (err) {
       // Error is handled by the store and useEffect above
     } finally {
