@@ -307,7 +307,7 @@ const Contacts: React.FC = () => {
               leftIcon={<FiRefreshCw />}
               variant="outline"
               size="sm"
-              onClick={fetchContacts}
+              onClick={() => fetchContacts()}
               isLoading={loading}
             >
               Refresh

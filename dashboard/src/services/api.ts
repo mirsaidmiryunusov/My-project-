@@ -1,8 +1,8 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 
 // API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-const WS_BASE_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3001';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:3001/api';
+const WS_BASE_URL = (import.meta as any).env?.VITE_WS_URL || 'ws://localhost:3001';
 
 // Types
 export interface ApiResponse<T = any> {
@@ -185,12 +185,14 @@ class ApiClient {
           if (refreshToken) {
             try {
               const response = await this.refreshToken(refreshToken);
-              this.setToken(response.data.accessToken);
-              localStorage.setItem('accessToken', response.data.accessToken);
+              if (response.data?.accessToken) {
+                this.setToken(response.data.accessToken);
+                localStorage.setItem('accessToken', response.data.accessToken);
+              }
               
               // Retry the original request
               if (error.config) {
-                error.config.headers.Authorization = `Bearer ${response.data.accessToken}`;
+                error.config.headers.Authorization = `Bearer ${response.data?.accessToken}`;
                 return this.client.request(error.config);
               }
             } catch (refreshError) {

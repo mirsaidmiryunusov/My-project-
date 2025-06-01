@@ -33,6 +33,11 @@ import {
   Spacer,
   Alert,
   AlertIcon,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
 } from '@chakra-ui/react';
 import {
   FiPhone,
@@ -53,6 +58,11 @@ import { useSystemStore } from '../stores/systemStore';
 import { useDashboardStore, formatMetricValue, getStatusColor } from '../stores/dashboardStore';
 import { useAuthStore } from '../stores/authStore';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import RealTimeMonitor from '../components/RealTimeMonitor';
+import PerformanceDashboard from '../components/PerformanceDashboard';
+import AIInsights from '../components/AIInsights';
+import SystemMonitor from '../components/SystemMonitor';
+import NotificationCenter from '../components/NotificationCenter';
 
 interface MetricCardProps {
   title: string;
@@ -306,7 +316,7 @@ const Dashboard: React.FC = () => {
   };
 
   // Get current user name
-  const userName = user?.firstName || user?.name?.split(' ')[0] || 'User';
+  const userName = user?.firstName || 'User';
 
   return (
     <Box>
@@ -376,7 +386,21 @@ const Dashboard: React.FC = () => {
         </HStack>
       </VStack>
 
-      {/* Key Metrics */}
+      {/* Advanced Dashboard Tabs */}
+      <Tabs variant="enclosed" colorScheme="blue">
+        <TabList>
+          <Tab>📊 Overview</Tab>
+          <Tab>🔄 Real-Time</Tab>
+          <Tab>⚡ Performance</Tab>
+          <Tab>🧠 AI Insights</Tab>
+          <Tab>🖥️ System Monitor</Tab>
+          <Tab>🔔 Notifications</Tab>
+        </TabList>
+
+        <TabPanels>
+          {/* Overview Tab - Original Dashboard Content */}
+          <TabPanel px={0}>
+            {/* Key Metrics */}
       <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6} mb={8}>
         <MetricCard
           title="Total Calls"
@@ -647,6 +671,44 @@ const Dashboard: React.FC = () => {
           </Card>
         </GridItem>
       </Grid>
+          </TabPanel>
+
+          {/* Real-Time Monitor Tab */}
+          <TabPanel px={0}>
+            <Grid templateColumns={{ base: "1fr", lg: "1fr 300px" }} gap={6}>
+              <GridItem>
+                <VStack spacing={6} align="stretch">
+                  <Text fontSize="lg" fontWeight="bold">Real-Time System Monitor</Text>
+                  <PerformanceDashboard />
+                </VStack>
+              </GridItem>
+              <GridItem>
+                <RealTimeMonitor />
+              </GridItem>
+            </Grid>
+          </TabPanel>
+
+          {/* Performance Dashboard Tab */}
+          <TabPanel px={0}>
+            <PerformanceDashboard />
+          </TabPanel>
+
+          {/* AI Insights Tab */}
+          <TabPanel px={0}>
+            <AIInsights />
+          </TabPanel>
+
+          {/* System Monitor Tab */}
+          <TabPanel px={0}>
+            <SystemMonitor />
+          </TabPanel>
+
+          {/* Notifications Tab */}
+          <TabPanel px={0}>
+            <NotificationCenter />
+          </TabPanel>
+        </TabPanels>
+      </Tabs>
     </Box>
   );
 };

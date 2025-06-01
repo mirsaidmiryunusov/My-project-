@@ -450,7 +450,7 @@ const Analytics: React.FC = () => {
                   </Card>
                 </SimpleGrid>
               </TabPanel>
-            </Tabs>
+            </TabPanels>
           </Tabs>
 
           {/* Hourly Distribution */}

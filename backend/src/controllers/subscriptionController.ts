@@ -9,15 +9,16 @@ interface AuthenticatedRequest extends Request {
 }
 
 export class SubscriptionController {
-  async getCurrentSubscription(req: AuthenticatedRequest, res: Response) {
+  async getCurrentSubscription(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.id;
 
       if (!userId) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'User ID is required',
         });
+        return;
       }
 
       // Mock subscription data for now
@@ -55,15 +56,16 @@ export class SubscriptionController {
     }
   }
 
-  async getUsage(req: AuthenticatedRequest, res: Response) {
+  async getUsage(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.id;
 
       if (!userId) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'User ID is required',
         });
+        return;
       }
 
       // Mock usage data
@@ -88,7 +90,7 @@ export class SubscriptionController {
     }
   }
 
-  async getPlans(req: Request, res: Response) {
+  async getPlans(req: Request, res: Response): Promise<void> {
     try {
       const plans = [
         {
@@ -170,16 +172,17 @@ export class SubscriptionController {
     }
   }
 
-  async createSubscription(req: AuthenticatedRequest, res: Response) {
+  async createSubscription(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.id;
       const { plan, paymentMethodId } = req.body;
 
       if (!userId) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'User ID is required',
         });
+        return;
       }
 
       // Mock subscription creation
@@ -205,16 +208,17 @@ export class SubscriptionController {
     }
   }
 
-  async updateSubscription(req: AuthenticatedRequest, res: Response) {
+  async updateSubscription(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.id;
       const { plan } = req.body;
 
       if (!userId) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'User ID is required',
         });
+        return;
       }
 
       // Mock subscription update
@@ -240,15 +244,16 @@ export class SubscriptionController {
     }
   }
 
-  async cancelSubscription(req: AuthenticatedRequest, res: Response) {
+  async cancelSubscription(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.id;
 
       if (!userId) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'User ID is required',
         });
+        return;
       }
 
       res.json({
@@ -264,16 +269,17 @@ export class SubscriptionController {
     }
   }
 
-  async createPaymentIntent(req: AuthenticatedRequest, res: Response) {
+  async createPaymentIntent(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.id;
       const { amount, currency = 'usd' } = req.body;
 
       if (!userId) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'User ID is required',
         });
+        return;
       }
 
       // Mock payment intent
@@ -298,15 +304,16 @@ export class SubscriptionController {
     }
   }
 
-  async getBillingHistory(req: AuthenticatedRequest, res: Response) {
+  async getBillingHistory(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.id;
 
       if (!userId) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'User ID is required',
         });
+        return;
       }
 
       // Mock billing history
@@ -340,7 +347,7 @@ export class SubscriptionController {
     }
   }
 
-  async handleWebhook(req: Request, res: Response) {
+  async handleWebhook(req: Request, res: Response): Promise<void> {
     try {
       // Mock webhook handling
       res.json({ received: true });
@@ -353,16 +360,17 @@ export class SubscriptionController {
     }
   }
 
-  async checkFeatureAccess(req: AuthenticatedRequest, res: Response) {
+  async checkFeatureAccess(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.id;
       const { feature } = req.params;
 
       if (!userId) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'User ID is required',
         });
+        return;
       }
 
       // Mock feature access check
@@ -381,16 +389,17 @@ export class SubscriptionController {
     }
   }
 
-  async checkUsageLimit(req: AuthenticatedRequest, res: Response) {
+  async checkUsageLimit(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.id;
       const { resource } = req.params;
 
       if (!userId) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: 'User ID is required',
         });
+        return;
       }
 
       // Mock usage limit check

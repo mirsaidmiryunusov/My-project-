@@ -314,14 +314,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
           <HStack spacing={isCollapsed ? 0 : 3}>
             <Avatar
               size={isCollapsed ? 'sm' : 'md'}
-              name={user?.name}
+              name={`${user?.firstName} ${user?.lastName}`}
               src={user?.avatar}
             />
             
             {!isCollapsed && (
               <VStack align="start" spacing={0} flex={1}>
                 <Text fontSize="sm" fontWeight="semibold" color={textColor}>
-                  {user?.name}
+                  {`${user?.firstName} ${user?.lastName}`}
                 </Text>
                 <Text fontSize="xs" color="gray.500">
                   {user?.role}

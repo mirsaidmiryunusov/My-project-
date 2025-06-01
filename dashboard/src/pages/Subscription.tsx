@@ -44,7 +44,7 @@ import {
   FaArrowUp,
   FaCreditCard,
   FaReceipt,
-  FaTrendingUp,
+  FaChartLine,
   FaPhone,
   FaBullhorn,
   FaUsers,
@@ -207,7 +207,7 @@ const SubscriptionPage: React.FC = () => {
             <VStack spacing={3} align="stretch">
               <Button
                 variant="ghost"
-                leftIcon={<Icon as={FaTrendingUp} />}
+                leftIcon={<Icon as={FaChartLine} />}
                 justifyContent="flex-start"
                 onClick={onUpgradeOpen}
               >

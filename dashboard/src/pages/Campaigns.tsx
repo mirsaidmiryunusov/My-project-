@@ -200,7 +200,7 @@ const Campaigns: React.FC = () => {
     }
   };
 
-  const handleStatusChange = async (campaign: any, newStatus: string) => {
+  const handleStatusChange = async (campaign: any, newStatus: 'draft' | 'active' | 'paused' | 'completed') => {
     const success = await updateCampaign(campaign.id, { status: newStatus });
     
     if (success) {

@@ -14,6 +14,12 @@ interface DashboardMetrics {
   pendingCalls: number;
   totalRevenue: number;
   monthlyGrowth: number;
+  activeCalls: number;
+  callsPerMinute: number;
+  avgResponseTime: number;
+  systemLoad: number;
+  networkLatency: number;
+  errorRate: number;
 }
 
 interface CallData {
