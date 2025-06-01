@@ -81,7 +81,7 @@ import {
   FiUsers,
   FiShield,
   FiZap,
-  FiBarChart3,
+  FiBarChart,
   FiPieChart,
   FiActivity,
   FiRefreshCw,

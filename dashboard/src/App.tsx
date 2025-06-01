@@ -4,7 +4,7 @@
  * Revolutionary AI Call Center Agent Management Interface
  */
 
-import React, { Suspense, useEffect } from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ChakraProvider, Box, Spinner, Center, Text, VStack } from '@chakra-ui/react';
 import { QueryClient, QueryClientProvider } from 'react-query';
@@ -22,8 +22,9 @@ import { useAuthStore } from './stores/authStore';
 import { DashboardLayout } from './components/Layout/DashboardLayout';
 
 // Page components (lazy loaded for performance)
-const LoginPage = React.lazy(() => import('./pages/Auth/LoginPage'));
-const DashboardPage = React.lazy(() => import('./pages/Dashboard/DashboardPage'));
+const LoginPage = React.lazy(() => import('./pages/Login'));
+const DashboardPage = React.lazy(() => import('./pages/Dashboard'));
+const AdvancedDashboard = React.lazy(() => import('./pages/AdvancedDashboard'));
 
 // Error components
 import { ErrorFallback } from './components/Error/ErrorFallback';
@@ -74,6 +75,18 @@ const App: React.FC = () => {
                   <Routes>
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/" element={
+                      <ProtectedRoute>
+                        <DashboardLayout>
+                          <DashboardPage />
+                        </DashboardLayout>
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/advanced" element={
+                      <ProtectedRoute>
+                        <AdvancedDashboard />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/dashboard" element={
                       <ProtectedRoute>
                         <DashboardLayout>
                           <DashboardPage />

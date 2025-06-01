@@ -56,7 +56,7 @@ import {
   FiClock,
   FiRefreshCw,
   FiMaximize2,
-  FiBarChart3,
+  FiBarChart,
   FiPieChart,
 } from 'react-icons/fi';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
@@ -546,7 +546,7 @@ const DashboardOverview: React.FC = () => {
                 New Campaign
               </Button>
               <Button
-                leftIcon={<FiBarChart3 />}
+                leftIcon={<FiBarChart />}
                 colorScheme="green"
                 variant="outline"
                 size="sm"

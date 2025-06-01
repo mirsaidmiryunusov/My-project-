@@ -63,7 +63,6 @@ import {
   FiThermometer,
   FiWifi,
   FiHardDrive,
-  FiMemory,
   FiMonitor,
   FiServer,
   FiAlertTriangle,
@@ -74,9 +73,8 @@ import {
   FiSettings,
   FiTrendingUp,
   FiTrendingDown,
-  FiBarChart3,
+  FiBarChart,
   FiRadio,
-  FiSignal,
   FiDatabase,
   FiCloud,
   FiShield,
@@ -252,11 +250,11 @@ const SystemMonitoring: React.FC = () => {
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'info': return 'blue';
-      case 'warning': return 'yellow';
-      case 'error': return 'orange';
-      case 'critical': return 'red';
-      default: return 'gray';
+      case 'info': return 'info';
+      case 'warning': return 'warning';
+      case 'error': return 'error';
+      case 'critical': return 'error';
+      default: return 'info';
     }
   };
 
@@ -918,7 +916,7 @@ const SystemMonitoring: React.FC = () => {
                       <Button size="sm" w="full" leftIcon={<FiSettings />} variant="outline">
                         System Configuration
                       </Button>
-                      <Button size="sm" w="full" leftIcon={<FiBarChart3 />} variant="outline">
+                      <Button size="sm" w="full" leftIcon={<FiBarChart />} variant="outline">
                         Generate Report
                       </Button>
                       <Button size="sm" w="full" leftIcon={<FiShield />} variant="outline">

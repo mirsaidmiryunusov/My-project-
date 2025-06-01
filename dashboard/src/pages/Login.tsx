@@ -303,7 +303,7 @@ const Login: React.FC = () => {
               </VStack>
               <VStack spacing={1}>
                 <Text fontSize="lg" fontWeight="bold" color="brand.500">
-                  <200ms
+                  &lt;200ms
                 </Text>
                 <Text fontSize="xs" color="gray.500">
                   Latency

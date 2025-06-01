@@ -18,7 +18,6 @@ import {
   StatLabel,
   StatNumber,
   StatHelpText,
-  StatArrow,
   useColorModeValue,
   Card,
   CardHeader,
@@ -95,7 +94,11 @@ const MetricCard: React.FC<MetricCardProps> = ({
             </Text>
             {change !== undefined && (
               <HStack spacing={1}>
-                <StatArrow type={change >= 0 ? 'increase' : 'decrease'} />
+                <Icon 
+                  as={change >= 0 ? FiTrendingUp : FiTrendingDown} 
+                  color={change >= 0 ? 'green.500' : 'red.500'}
+                  size={16}
+                />
                 <Text fontSize="sm" color={change >= 0 ? 'green.500' : 'red.500'}>
                   {Math.abs(change)}%
                 </Text>
@@ -152,7 +155,7 @@ const SystemHealthCard: React.FC<SystemHealthCardProps> = ({ title, status, deta
       <CardHeader pb={2}>
         <HStack justify="space-between">
           <Text fontWeight="semibold">{title}</Text>
-          <HStack spacing={2}>
+          <HStack>
             <StatusIcon color={getStatusColor(status)} size={16} />
             <Badge colorScheme={getStatusColor(status)} size="sm">
               {status.toUpperCase()}
@@ -167,7 +170,7 @@ const SystemHealthCard: React.FC<SystemHealthCardProps> = ({ title, status, deta
               <Text fontSize="sm" color="gray.600">
                 {detail.label}
               </Text>
-              <HStack spacing={2}>
+              <HStack>
                 <Text fontSize="sm" fontWeight="medium">
                   {detail.value}
                 </Text>
@@ -282,7 +285,7 @@ const Dashboard: React.FC = () => {
               Here's what's happening with your call center today.
             </Text>
           </VStack>
-          <HStack spacing={2}>
+          <HStack>
             <Button
               leftIcon={<FiRefreshCw />}
               variant="outline"
@@ -356,7 +359,7 @@ const Dashboard: React.FC = () => {
                     Real-time system performance metrics
                   </Text>
                 </VStack>
-                <HStack spacing={2}>
+                <HStack>
                   {['1h', '6h', '24h', '7d'].map((range) => (
                     <Button
                       key={range}
@@ -516,12 +519,13 @@ const Dashboard: React.FC = () => {
                   h="auto"
                   py={4}
                   flexDirection="column"
-                  spacing={2}
                 >
-                  <Text>Start Call</Text>
-                  <Text fontSize="xs" color="gray.500">
-                    Initiate outbound call
-                  </Text>
+                  <VStack spacing={1}>
+                    <Text>Start Call</Text>
+                    <Text fontSize="xs" color="gray.500">
+                      Initiate outbound call
+                    </Text>
+                  </VStack>
                 </Button>
                 <Button
                   leftIcon={<FiMessageSquare />}
@@ -530,12 +534,13 @@ const Dashboard: React.FC = () => {
                   h="auto"
                   py={4}
                   flexDirection="column"
-                  spacing={2}
                 >
-                  <Text>Send SMS</Text>
-                  <Text fontSize="xs" color="gray.500">
-                    Quick SMS campaign
-                  </Text>
+                  <VStack spacing={1}>
+                    <Text>Send SMS</Text>
+                    <Text fontSize="xs" color="gray.500">
+                      Quick SMS campaign
+                    </Text>
+                  </VStack>
                 </Button>
                 <Button
                   leftIcon={<FiUsers />}
@@ -544,12 +549,13 @@ const Dashboard: React.FC = () => {
                   h="auto"
                   py={4}
                   flexDirection="column"
-                  spacing={2}
                 >
-                  <Text>Add Customer</Text>
-                  <Text fontSize="xs" color="gray.500">
-                    New customer entry
-                  </Text>
+                  <VStack spacing={1}>
+                    <Text>Add Customer</Text>
+                    <Text fontSize="xs" color="gray.500">
+                      New customer entry
+                    </Text>
+                  </VStack>
                 </Button>
                 <Button
                   leftIcon={<FiTrendingUp />}
@@ -558,12 +564,13 @@ const Dashboard: React.FC = () => {
                   h="auto"
                   py={4}
                   flexDirection="column"
-                  spacing={2}
                 >
-                  <Text>View Reports</Text>
-                  <Text fontSize="xs" color="gray.500">
-                    Analytics dashboard
-                  </Text>
+                  <VStack spacing={1}>
+                    <Text>View Reports</Text>
+                    <Text fontSize="xs" color="gray.500">
+                      Analytics dashboard
+                    </Text>
+                  </VStack>
                 </Button>
               </SimpleGrid>
             </CardBody>
