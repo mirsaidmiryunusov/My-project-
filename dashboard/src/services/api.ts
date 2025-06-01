@@ -519,6 +519,7 @@ export class WebSocketClient {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
+  private eventListeners: Map<string, Function[]> = new Map();
 
   connect(token: string) {
     try {
