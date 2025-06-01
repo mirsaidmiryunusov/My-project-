@@ -1,104 +1,40 @@
-import { Router } from 'express';
-import { subscriptionController } from '../controllers/subscriptionController';
-import { authenticateToken, requirePermission } from '../middleware/auth';
-import { validateRequest } from '../middleware/validation';
-import { body, param } from 'express-validator';
+import express from 'express';
+import { SubscriptionController } from '../controllers/subscriptionController';
 
-const router = Router();
+const router = express.Router();
+const subscriptionController = new SubscriptionController();
 
 // Get current subscription
-router.get(
-  '/current',
-  authenticateToken,
-  subscriptionController.getCurrentSubscription
-);
+router.get('/current', subscriptionController.getCurrentSubscription.bind(subscriptionController));
 
 // Get subscription usage
-router.get(
-  '/usage',
-  authenticateToken,
-  subscriptionController.getUsage
-);
+router.get('/usage', subscriptionController.getUsage.bind(subscriptionController));
 
 // Get available plans
-router.get(
-  '/plans',
-  subscriptionController.getPlans
-);
+router.get('/plans', subscriptionController.getPlans.bind(subscriptionController));
 
 // Create subscription
-router.post(
-  '/create',
-  authenticateToken,
-  requirePermission('subscription:manage'),
-  validateRequest([
-    body('plan').isIn(['FREE', 'STARTER', 'PROFESSIONAL', 'ENTERPRISE']),
-    body('paymentMethodId').optional().isString(),
-  ]),
-  subscriptionController.createSubscription
-);
+router.post('/create', subscriptionController.createSubscription.bind(subscriptionController));
 
 // Update subscription
-router.put(
-  '/update',
-  authenticateToken,
-  requirePermission('subscription:manage'),
-  validateRequest([
-    body('plan').isIn(['FREE', 'STARTER', 'PROFESSIONAL', 'ENTERPRISE']),
-  ]),
-  subscriptionController.updateSubscription
-);
+router.put('/update', subscriptionController.updateSubscription.bind(subscriptionController));
 
 // Cancel subscription
-router.post(
-  '/cancel',
-  authenticateToken,
-  requirePermission('subscription:manage'),
-  subscriptionController.cancelSubscription
-);
+router.delete('/cancel', subscriptionController.cancelSubscription.bind(subscriptionController));
 
 // Create payment intent
-router.post(
-  '/payment-intent',
-  authenticateToken,
-  requirePermission('subscription:manage'),
-  validateRequest([
-    body('plan').isIn(['STARTER', 'PROFESSIONAL', 'ENTERPRISE']),
-  ]),
-  subscriptionController.createPaymentIntent
-);
+router.post('/payment-intent', subscriptionController.createPaymentIntent.bind(subscriptionController));
 
 // Get billing history
-router.get(
-  '/billing-history',
-  authenticateToken,
-  subscriptionController.getBillingHistory
-);
+router.get('/billing-history', subscriptionController.getBillingHistory.bind(subscriptionController));
 
-// Stripe webhook
-router.post(
-  '/webhook',
-  subscriptionController.handleWebhook
-);
+// Webhook endpoint
+router.post('/webhook', subscriptionController.handleWebhook.bind(subscriptionController));
 
 // Check feature access
-router.get(
-  '/feature/:feature',
-  authenticateToken,
-  validateRequest([
-    param('feature').isString(),
-  ]),
-  subscriptionController.checkFeatureAccess
-);
+router.get('/feature/:feature', subscriptionController.checkFeatureAccess.bind(subscriptionController));
 
 // Check usage limit
-router.get(
-  '/limit/:resource',
-  authenticateToken,
-  validateRequest([
-    param('resource').isIn(['calls', 'campaigns', 'contacts', 'users', 'aiMinutes']),
-  ]),
-  subscriptionController.checkUsageLimit
-);
+router.get('/usage-limit/:resource', subscriptionController.checkUsageLimit.bind(subscriptionController));
 
 export default router;

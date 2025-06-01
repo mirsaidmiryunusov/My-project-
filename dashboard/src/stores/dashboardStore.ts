@@ -172,12 +172,12 @@ export const useDashboardStore = create<DashboardStore>()(
 
       fetchRecentCalls: async (limit = 10) => {
         try {
-          const response = await apiClient.getRecentCalls(limit);
+          const response = await apiClient.client.get('/dashboard/calls/live', { params: { limit } });
           
-          if (response.success && response.data) {
-            set({ recentCalls: response.data });
+          if (response.data.success && response.data.data) {
+            set({ recentCalls: response.data.data });
           } else {
-            throw new Error(response.message || 'Failed to fetch recent calls');
+            throw new Error(response.data.message || 'Failed to fetch recent calls');
           }
         } catch (error) {
           console.error('Failed to fetch recent calls:', error);
@@ -217,12 +217,12 @@ export const useDashboardStore = create<DashboardStore>()(
 
       fetchAnalytics: async (timeRange = '7d') => {
         try {
-          const response = await apiClient.getAnalytics(timeRange);
+          const response = await apiClient.client.get('/dashboard/analytics', { params: { period: timeRange } });
           
-          if (response.success && response.data) {
-            set({ analytics: response.data });
+          if (response.data.success && response.data.data) {
+            set({ analytics: response.data.data });
           } else {
-            throw new Error(response.message || 'Failed to fetch analytics');
+            throw new Error(response.data.message || 'Failed to fetch analytics');
           }
         } catch (error) {
           console.error('Failed to fetch analytics:', error);
