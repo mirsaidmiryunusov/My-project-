@@ -565,6 +565,39 @@ export class WebSocketClient {
     }
   }
 
+  on(event: string, callback: Function) {
+    if (!this.eventListeners.has(event)) {
+      this.eventListeners.set(event, []);
+    }
+    this.eventListeners.get(event)!.push(callback);
+  }
+
+  off(event: string, callback?: Function) {
+    if (!this.eventListeners.has(event)) return;
+    
+    if (callback) {
+      const listeners = this.eventListeners.get(event)!;
+      const index = listeners.indexOf(callback);
+      if (index > -1) {
+        listeners.splice(index, 1);
+      }
+    } else {
+      this.eventListeners.set(event, []);
+    }
+  }
+
+  private emit(event: string, data: any) {
+    if (this.eventListeners.has(event)) {
+      this.eventListeners.get(event)!.forEach(callback => {
+        try {
+          callback(data);
+        } catch (error) {
+          console.error(`Error in WebSocket event listener for ${event}:`, error);
+        }
+      });
+    }
+  }
+
   private attemptReconnect(token: string) {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
@@ -576,20 +609,19 @@ export class WebSocketClient {
   }
 
   private handleMessage(data: any) {
-    // Emit custom events for different message types
-    const event = new CustomEvent('websocket-message', { detail: data });
-    window.dispatchEvent(event);
+    // Emit events using our custom event system
+    this.emit('websocket-message', data);
 
     // Handle specific message types
     switch (data.type) {
       case 'call_update':
-        window.dispatchEvent(new CustomEvent('call-update', { detail: data.payload }));
+        this.emit('call-update', data.payload);
         break;
       case 'campaign_update':
-        window.dispatchEvent(new CustomEvent('campaign-update', { detail: data.payload }));
+        this.emit('campaign-update', data.payload);
         break;
       case 'metrics_update':
-        window.dispatchEvent(new CustomEvent('metrics-update', { detail: data.payload }));
+        this.emit('metrics-update', data.payload);
         break;
       default:
         console.log('Unhandled WebSocket message type:', data.type);
