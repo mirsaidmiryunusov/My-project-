@@ -72,7 +72,7 @@ import {
   FiUser,
   FiMapPin,
   FiActivity,
-  FiBarChart3,
+  FiBarChart,
   FiSettings,
   FiRefreshCw,
   FiSearch,
@@ -87,7 +87,7 @@ import {
   FiSkipForward,
   FiHeadphones,
   FiRadio,
-  FiSignal,
+  FiWifi,
 } from 'react-icons/fi';
 import { Line, Bar } from 'react-chartjs-2';
 
@@ -396,7 +396,7 @@ const ActiveCallsMonitor: React.FC = () => {
                 {totalActiveCalls > 0 ? Math.round((excellentQualityCalls / totalActiveCalls) * 100) : 0}%
               </StatNumber>
               <StatHelpText>
-                <Icon as={FiBarChart3} mr={1} />
+                <Icon as={FiBarChart} mr={1} />
                 Excellent quality
               </StatHelpText>
             </Stat>
@@ -765,7 +765,7 @@ const ActiveCallsMonitor: React.FC = () => {
                         <Button leftIcon={<FiHeadphones />} colorScheme="purple">
                           Monitor
                         </Button>
-                        <Button leftIcon={<FiPhoneOff />} colorScheme="red" colSpan={2}>
+                        <Button leftIcon={<FiPhoneOff />} colorScheme="red">
                           End Call
                         </Button>
                       </SimpleGrid>

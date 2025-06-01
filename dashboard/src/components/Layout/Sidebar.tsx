@@ -31,7 +31,7 @@ import {
   FiPhone,
   FiMessageSquare,
   FiUsers,
-  FiBarChart3,
+  FiBarChart,
   FiDollarSign,
   FiSettings,
   FiShield,
@@ -81,7 +81,7 @@ const menuItems: MenuItem[] = [
     children: [
       { id: 'active-calls', label: 'Active Calls', icon: FiActivity, path: '/calls/active' },
       { id: 'call-history', label: 'Call History', icon: FiFileText, path: '/calls/history' },
-      { id: 'call-analytics', label: 'Call Analytics', icon: FiBarChart3, path: '/calls/analytics' },
+      { id: 'call-analytics', label: 'Call Analytics', icon: FiBarChart, path: '/calls/analytics' },
       { id: 'call-routing', label: 'Call Routing', icon: FiTarget, path: '/calls/routing' },
     ],
   },
@@ -103,7 +103,7 @@ const menuItems: MenuItem[] = [
     children: [
       { id: 'customer-list', label: 'Customer List', icon: FiUsers, path: '/customers/list' },
       { id: 'customer-segments', label: 'Segmentation', icon: FiTarget, path: '/customers/segments' },
-      { id: 'customer-analytics', label: 'Analytics', icon: FiBarChart3, path: '/customers/analytics' },
+      { id: 'customer-analytics', label: 'Analytics', icon: FiBarChart, path: '/customers/analytics' },
       { id: 'customer-journey', label: 'Journey Mapping', icon: FiActivity, path: '/customers/journey' },
     ],
   },
@@ -123,7 +123,7 @@ const menuItems: MenuItem[] = [
     label: 'Revenue Optimization',
     icon: FiDollarSign,
     children: [
-      { id: 'revenue-dashboard', label: 'Revenue Dashboard', icon: FiBarChart3, path: '/revenue/dashboard' },
+      { id: 'revenue-dashboard', label: 'Revenue Dashboard', icon: FiBarChart, path: '/revenue/dashboard' },
       { id: 'pricing-optimization', label: 'Pricing Optimization', icon: FiTrendingUp, path: '/revenue/pricing' },
       { id: 'upsell-opportunities', label: 'Upsell Opportunities', icon: FiTarget, path: '/revenue/upsell' },
       { id: 'clv-analysis', label: 'CLV Analysis', icon: FiDollarSign, path: '/revenue/clv' },
@@ -133,7 +133,7 @@ const menuItems: MenuItem[] = [
   {
     id: 'analytics',
     label: 'Analytics & Reports',
-    icon: FiBarChart3,
+    icon: FiBarChart,
     children: [
       { id: 'real-time-analytics', label: 'Real-time Analytics', icon: FiActivity, path: '/analytics/realtime' },
       { id: 'performance-reports', label: 'Performance Reports', icon: FiFileText, path: '/analytics/performance' },
