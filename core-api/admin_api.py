@@ -16,6 +16,8 @@ from sqlmodel import Session
 from database import get_session
 from auth import get_current_user, require_admin_role
 from modem_management_service import ModemManagementService
+from gsm_module_service import GSMModuleService
+from sim900_service import SIM900Service
 from models import User, UserRole
 
 
@@ -531,3 +533,126 @@ async def get_admin_dashboard_data(
     except Exception as e:
         logger.error("Failed to get dashboard data", error=str(e))
         raise HTTPException(status_code=500, detail="Failed to get dashboard data")
+
+
+# GSM Module Management Endpoints
+
+@admin_router.get("/gsm-modules/scan")
+async def scan_gsm_modules(current_user: User = Depends(require_admin_role)):
+    """Scan for connected SIM900 GSM modules."""
+    try:
+        # Use SIM900 service for hardware detection
+        sim900_service = SIM900Service()
+        result = await sim900_service.scan_for_sim900_modules()
+        
+        logger.info("SIM900 module scan completed", 
+                   admin_id=current_user.id, 
+                   modules_found=result.get("modules_found", 0))
+        return result
+        
+    except Exception as e:
+        logger.error("Failed to scan SIM900 modules", error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to scan SIM900 modules")
+
+
+class AddGSMModuleRequest(BaseModel):
+    port: str
+    phone_number: str
+    api_key: str
+
+
+@admin_router.post("/gsm-modules/add")
+async def add_gsm_module(
+    request: AddGSMModuleRequest,
+    current_user: User = Depends(require_admin_role)
+):
+    """Add a new SIM900 GSM module to the system."""
+    try:
+        # Use SIM900 service for hardware verification and addition
+        sim900_service = SIM900Service()
+        result = await sim900_service.add_sim900_module(
+            port=request.port,
+            phone_number=request.phone_number,
+            api_key=request.api_key
+        )
+        
+        if result["success"]:
+            logger.info("SIM900 module added successfully", 
+                       admin_id=current_user.id, 
+                       port=request.port, 
+                       phone_number=request.phone_number)
+            return result
+        else:
+            raise HTTPException(status_code=400, detail=result["error"])
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to add GSM module", error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to add GSM module")
+
+
+@admin_router.delete("/gsm-modules/{modem_id}")
+async def remove_gsm_module(
+    modem_id: UUID,
+    current_user: User = Depends(require_admin_role)
+):
+    """Remove a GSM module from the system."""
+    try:
+        gsm_service = GSMModuleService()
+        result = await gsm_service.remove_gsm_module(modem_id)
+        
+        if result["success"]:
+            return result
+        else:
+            raise HTTPException(status_code=400, detail=result["error"])
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to remove GSM module", error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to remove GSM module")
+
+
+@admin_router.get("/gsm-modules/{modem_id}/status")
+async def get_gsm_module_status(
+    modem_id: UUID,
+    current_user: User = Depends(require_admin_role)
+):
+    """Get real-time status of a SIM900 GSM module."""
+    try:
+        # Use SIM900 service for hardware status check
+        sim900_service = SIM900Service()
+        result = await sim900_service.get_sim900_status(modem_id)
+        
+        if result["success"]:
+            logger.info("SIM900 module status retrieved", 
+                       admin_id=current_user.id, 
+                       modem_id=modem_id)
+            return result
+        else:
+            raise HTTPException(status_code=404, detail=result["error"])
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to get GSM module status", error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to get module status")
+
+
+@admin_router.get("/gsm-modules/count")
+async def get_available_modules_count(current_user: User = Depends(require_admin_role)):
+    """Get count of available GSM modules."""
+    try:
+        gsm_service = GSMModuleService()
+        count = await gsm_service.get_available_modules_count()
+        
+        return {
+            "success": True,
+            "available_modules": count,
+            "message": f"{count} GSM modules available" if count > 0 else "No GSM modules available"
+        }
+        
+    except Exception as e:
+        logger.error("Failed to get available modules count", error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to get modules count")

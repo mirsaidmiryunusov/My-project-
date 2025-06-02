@@ -17,6 +17,7 @@ from sqlmodel import Session
 from database import get_session
 from auth import get_current_user, create_access_token
 from client_registration_service import ClientRegistrationService
+from ai_tools_service import AIToolsService
 from models import User
 
 
@@ -255,10 +256,10 @@ async def login_client(
                 error="ACCOUNT_DEACTIVATED"
             )
         
-        # Create access token
-        access_token = create_access_token(
-            data={"sub": str(user.id), "email": user.email}
-        )
+        # Create access token using AuthManager
+        from auth import get_auth_manager
+        auth_manager = get_auth_manager()
+        access_token = auth_manager.create_access_token(user)
         
         # Update last login
         user.last_login = datetime.utcnow()
@@ -536,3 +537,95 @@ async def get_client_profile(
     except Exception as e:
         logger.error("Failed to get client profile", error=str(e))
         raise HTTPException(status_code=500, detail="Failed to get profile")
+
+
+# AI Tools Endpoints
+
+@client_router.get("/ai-tools/available")
+async def get_available_ai_tools():
+    """Get list of all available AI tools."""
+    try:
+        ai_tools_service = AIToolsService()
+        result = await ai_tools_service.get_available_tools()
+        return result
+        
+    except Exception as e:
+        logger.error("Failed to get available AI tools", error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to get available tools")
+
+
+@client_router.get("/ai-tools/configured")
+async def get_configured_ai_tools(current_user: User = Depends(get_current_user)):
+    """Get configured AI tools for current user."""
+    try:
+        ai_tools_service = AIToolsService()
+        result = await ai_tools_service.get_user_tools(current_user.id)
+        return result
+        
+    except Exception as e:
+        logger.error("Failed to get configured AI tools", error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to get configured tools")
+
+
+class AIToolConfigRequest(BaseModel):
+    tool_name: str
+    config: Dict[str, str]
+
+
+@client_router.post("/ai-tools/configure")
+async def configure_ai_tool(
+    request: AIToolConfigRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Configure an AI tool for the current user."""
+    try:
+        ai_tools_service = AIToolsService()
+        result = await ai_tools_service.configure_tool(
+            user_id=current_user.id,
+            tool_name=request.tool_name,
+            config=request.config
+        )
+        
+        if result["success"]:
+            return result
+        else:
+            raise HTTPException(status_code=400, detail=result["error"])
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to configure AI tool", error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to configure tool")
+
+
+class AIToolActionRequest(BaseModel):
+    tool_name: str
+    action: str
+    parameters: Dict[str, Any]
+
+
+@client_router.post("/ai-tools/execute")
+async def execute_ai_tool_action(
+    request: AIToolActionRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Execute an action using an AI tool."""
+    try:
+        ai_tools_service = AIToolsService()
+        result = await ai_tools_service.execute_tool_action(
+            user_id=current_user.id,
+            tool_name=request.tool_name,
+            action=request.action,
+            parameters=request.parameters
+        )
+        
+        if result["success"]:
+            return result
+        else:
+            raise HTTPException(status_code=400, detail=result["error"])
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to execute AI tool action", error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to execute action")

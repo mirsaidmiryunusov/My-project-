@@ -374,6 +374,7 @@
             <!-- Tabs -->
             <div class="tabs">
                 <div class="tab active" onclick="showTab('modems')">Управление модемами</div>
+                <div class="tab" onclick="showTab('gsm-modules')">SIM900 GSM модули</div>
                 <div class="tab" onclick="showTab('settings')">Системные настройки</div>
                 <div class="tab" onclick="showTab('activity')">Активность</div>
             </div>
@@ -429,6 +430,88 @@
                             <!-- Modems will be populated here -->
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- SIM900 GSM Modules Tab -->
+            <div id="gsm-modules-tab" class="tab-content">
+                <div class="card">
+                    <h3>Сканирование SIM900 модулей</h3>
+                    <p>Поиск подключенных SIM900 GSM модулей через USB/Serial порты</p>
+                    <button class="btn btn-primary" onclick="scanGSMModules()">Сканировать модули</button>
+                    <div id="scan-results" style="margin-top: 20px;"></div>
+                </div>
+
+                <div class="card">
+                    <h3>Добавить SIM900 модуль</h3>
+                    <form id="add-gsm-module-form">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div>
+                                <label>COM порт:</label>
+                                <select id="gsm-port" required>
+                                    <option value="">Выберите порт</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Номер телефона:</label>
+                                <input type="text" id="gsm-phone" placeholder="+7XXXXXXXXXX" required>
+                            </div>
+                            <div>
+                                <label>Gemini API ключ:</label>
+                                <input type="text" id="gsm-api-key" placeholder="API ключ для этого модуля" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success" style="margin-top: 15px;">Добавить SIM900 модуль</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h3>Активные SIM900 модули</h3>
+                    <button class="btn" onclick="loadGSMModules()">Обновить список</button>
+                    <div style="margin: 15px 0;">
+                        <span id="gsm-modules-count" class="status-badge">Загрузка...</span>
+                    </div>
+
+                    <table class="table" id="gsm-modules-table">
+                        <thead>
+                            <tr>
+                                <th>COM порт</th>
+                                <th>Номер телефона</th>
+                                <th>IMEI</th>
+                                <th>Статус SIM</th>
+                                <th>Сигнал</th>
+                                <th>Сеть</th>
+                                <th>API ключ</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- GSM modules will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <h3>Тест отправки SMS</h3>
+                    <form id="test-sms-form">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                            <div>
+                                <label>Выберите модуль:</label>
+                                <select id="test-modem-select" required>
+                                    <option value="">Выберите модуль</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Номер получателя:</label>
+                                <input type="text" id="test-phone" placeholder="+7XXXXXXXXXX" required>
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <label>Сообщение:</label>
+                            <textarea id="test-message" rows="3" placeholder="Тестовое сообщение" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-warning" style="margin-top: 15px;">Отправить тестовое SMS</button>
+                    </form>
                 </div>
             </div>
 
@@ -873,6 +956,283 @@
                 showMessage('Ошибка соединения с сервером', 'error');
             }
         }
+
+        // GSM Module Management Functions
+
+        // Scan for GSM modules
+        async function scanGSMModules() {
+            try {
+                showMessage('Сканирование SIM900 модулей...', 'info');
+                
+                const response = await fetch(`${API_BASE}/admin/gsm-modules/scan`, {
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`
+                    }
+                });
+
+                const result = await response.json();
+                const scanResults = document.getElementById('scan-results');
+
+                if (result.success) {
+                    showMessage(`Найдено ${result.modules_found} SIM900 модулей`);
+                    
+                    if (result.modules.length > 0) {
+                        let html = '<h4>Найденные SIM900 модули:</h4>';
+                        html += '<div style="display: grid; gap: 15px;">';
+                        
+                        result.modules.forEach(module => {
+                            const info = module.module_info;
+                            html += `
+                                <div style="border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #f9f9f9;">
+                                    <strong>Порт:</strong> ${module.port}<br>
+                                    <strong>Производитель:</strong> ${info.manufacturer || 'Unknown'}<br>
+                                    <strong>Модель:</strong> ${info.model || 'Unknown'}<br>
+                                    <strong>IMEI:</strong> ${info.imei || 'Unknown'}<br>
+                                    <strong>Статус SIM:</strong> ${info.sim_status || 'Unknown'}<br>
+                                    <strong>Сигнал:</strong> ${info.signal_strength || 'Unknown'} (${info.signal_quality || 'Unknown'})<br>
+                                    <strong>Сеть:</strong> ${info.network_status || 'Unknown'}<br>
+                                    <strong>Скорость:</strong> ${info.baudrate || 9600} baud<br>
+                                    <button class="btn btn-success" onclick="addFoundModule('${module.port}', ${info.baudrate || 9600})">
+                                        Добавить этот модуль
+                                    </button>
+                                </div>
+                            `;
+                        });
+                        
+                        html += '</div>';
+                        scanResults.innerHTML = html;
+                        
+                        // Update port selector
+                        const portSelect = document.getElementById('gsm-port');
+                        portSelect.innerHTML = '<option value="">Выберите порт</option>';
+                        result.modules.forEach(module => {
+                            const option = document.createElement('option');
+                            option.value = module.port;
+                            option.textContent = `${module.port} (SIM900)`;
+                            portSelect.appendChild(option);
+                        });
+                        
+                    } else {
+                        scanResults.innerHTML = '<p style="color: #666;">SIM900 модули не найдены. Убедитесь, что модули подключены и драйверы установлены.</p>';
+                    }
+                } else {
+                    showMessage(result.error || 'Ошибка сканирования', 'error');
+                    scanResults.innerHTML = '<p style="color: #e74c3c;">Ошибка сканирования модулей</p>';
+                }
+            } catch (error) {
+                showMessage('Ошибка соединения с сервером', 'error');
+            }
+        }
+
+        // Add found module with pre-filled data
+        function addFoundModule(port, baudrate) {
+            document.getElementById('gsm-port').value = port;
+            // Scroll to add module form
+            document.querySelector('#add-gsm-module-form').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Add GSM module form handler
+        document.getElementById('add-gsm-module-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const port = document.getElementById('gsm-port').value;
+            const phone = document.getElementById('gsm-phone').value;
+            const apiKey = document.getElementById('gsm-api-key').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/gsm-modules/add`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminToken}`
+                    },
+                    body: JSON.stringify({
+                        port: port,
+                        phone_number: phone,
+                        api_key: apiKey
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('SIM900 модуль успешно добавлен');
+                    this.reset();
+                    loadGSMModules();
+                } else {
+                    showMessage(result.error || 'Ошибка добавления модуля', 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка соединения с сервером', 'error');
+            }
+        });
+
+        // Load GSM modules
+        async function loadGSMModules() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/modems`, {
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`
+                    }
+                });
+
+                const result = await response.json();
+                const tbody = document.querySelector('#gsm-modules-table tbody');
+                const countElement = document.getElementById('gsm-modules-count');
+
+                if (result.success) {
+                    // Filter only SIM900 modules
+                    const gsmModules = result.modems.filter(modem => 
+                        modem.model && modem.model.includes('SIM900')
+                    );
+
+                    countElement.textContent = `Активных SIM900 модулей: ${gsmModules.length}`;
+                    countElement.className = gsmModules.length > 0 ? 'status-badge status-active' : 'status-badge status-inactive';
+
+                    tbody.innerHTML = '';
+                    
+                    if (gsmModules.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #666;">SIM900 модули не найдены</td></tr>';
+                        return;
+                    }
+
+                    // Update test modem selector
+                    const testSelect = document.getElementById('test-modem-select');
+                    testSelect.innerHTML = '<option value="">Выберите модуль</option>';
+
+                    gsmModules.forEach(modem => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${modem.port || 'Unknown'}</td>
+                            <td>${modem.phone_number}</td>
+                            <td>${modem.imei || 'Unknown'}</td>
+                            <td><span class="status-badge ${modem.status === 'available' ? 'status-active' : 'status-inactive'}">${modem.status}</span></td>
+                            <td>${modem.signal_strength || 'Unknown'}</td>
+                            <td>Unknown</td>
+                            <td>${modem.api_key ? '***' + modem.api_key.slice(-4) : 'Не задан'}</td>
+                            <td>
+                                <button class="btn btn-sm" onclick="checkGSMModuleStatus('${modem.id}')">Проверить</button>
+                                <button class="btn btn-sm btn-danger" onclick="removeGSMModule('${modem.id}')">Удалить</button>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+
+                        // Add to test selector
+                        if (modem.status === 'available') {
+                            const option = document.createElement('option');
+                            option.value = modem.id;
+                            option.textContent = `${modem.phone_number} (${modem.port})`;
+                            testSelect.appendChild(option);
+                        }
+                    });
+                } else {
+                    showMessage(result.error || 'Ошибка загрузки модулей', 'error');
+                    countElement.textContent = 'Ошибка загрузки';
+                    countElement.className = 'status-badge status-inactive';
+                }
+            } catch (error) {
+                showMessage('Ошибка соединения с сервером', 'error');
+            }
+        }
+
+        // Check GSM module status
+        async function checkGSMModuleStatus(modemId) {
+            try {
+                showMessage('Проверка статуса SIM900 модуля...', 'info');
+                
+                const response = await fetch(`${API_BASE}/admin/gsm-modules/${modemId}/status`, {
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const status = result.hardware_status;
+                    let message = `Статус SIM900 модуля ${result.phone_number}:\n`;
+                    message += `Подключен: ${status.connected ? 'Да' : 'Нет'}\n`;
+                    if (status.connected) {
+                        message += `SIM карта: ${status.sim_status}\n`;
+                        message += `Сигнал: ${status.signal_strength} (${status.signal_quality})\n`;
+                        message += `Сеть: ${status.network_status}\n`;
+                        message += `Скорость: ${status.baudrate} baud`;
+                    } else {
+                        message += `Ошибка: ${status.error}`;
+                    }
+                    
+                    alert(message);
+                    loadGSMModules(); // Refresh the list
+                } else {
+                    showMessage(result.error || 'Ошибка проверки статуса', 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка соединения с сервером', 'error');
+            }
+        }
+
+        // Remove GSM module
+        async function removeGSMModule(modemId) {
+            if (!confirm('Вы уверены, что хотите удалить этот SIM900 модуль?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/gsm-modules/${modemId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('SIM900 модуль удален');
+                    loadGSMModules();
+                } else {
+                    showMessage(result.error || 'Ошибка удаления модуля', 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка соединения с сервером', 'error');
+            }
+        }
+
+        // Test SMS form handler
+        document.getElementById('test-sms-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const modemId = document.getElementById('test-modem-select').value;
+            const phone = document.getElementById('test-phone').value;
+            const message = document.getElementById('test-message').value;
+
+            try {
+                showMessage('Отправка тестового SMS...', 'info');
+                
+                const response = await fetch(`${API_BASE}/admin/modems/${modemId}/send-sms`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminToken}`
+                    },
+                    body: JSON.stringify({
+                        phone_number: phone,
+                        message: message
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('Тестовое SMS отправлено успешно');
+                    this.reset();
+                } else {
+                    showMessage(result.error || 'Ошибка отправки SMS', 'error');
+                }
+            } catch (error) {
+                showMessage('Ошибка соединения с сервером', 'error');
+            }
+        });
 
         // Close modal when clicking outside
         window.onclick = function(event) {

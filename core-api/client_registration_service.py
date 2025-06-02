@@ -635,30 +635,100 @@ class ClientRegistrationService:
             }
             
     async def _send_verification_sms(self, phone_number: str, sms_code: str, registration_id: UUID):
-        """Send SMS verification code."""
+        """
+        Send SMS verification code using real GSM modules.
+        NO SIMULATION - only real hardware.
+        """
         try:
-            message_content = f"Your verification code is: {sms_code}. Valid for 10 minutes."
+            from sim900_service import SIM900Service
+            from gsm_module_service import get_gsm_module_service
             
+            # Use SIM900 service for real hardware SMS sending
+            sim900_service = SIM900Service()
+            gsm_service = get_gsm_module_service()
+            
+            # Check if any GSM modules are available
+            available_count = await gsm_service.get_available_modules_count()
+            if available_count == 0:
+                logger.warning("No GSM modules available for SMS sending")
+                
+                # Create SMS record with failed status
+                with Session(self.engine) as session:
+                    sms_message = SMSMessage(
+                        phone_number=phone_number,
+                        message_content=f"Your verification code is: {sms_code}. Valid for 10 minutes.",
+                        message_type="verification",
+                        status=SMSStatus.FAILED,
+                        registration_id=registration_id,
+                        error_message="No GSM modules available"
+                    )
+                    session.add(sms_message)
+                    session.commit()
+                
+                raise Exception("No GSM modules available. Please contact administrator.")
+            
+            # Get an available modem
             with Session(self.engine) as session:
+                available_modem = session.exec(
+                    select(Modem).where(
+                        Modem.status == ModemStatus.AVAILABLE
+                    )
+                ).first()
+                
+                if not available_modem:
+                    sms_message = SMSMessage(
+                        phone_number=phone_number,
+                        message_content=f"Your verification code is: {sms_code}. Valid for 10 minutes.",
+                        message_type="verification",
+                        status=SMSStatus.FAILED,
+                        registration_id=registration_id,
+                        error_message="No available GSM modules"
+                    )
+                    session.add(sms_message)
+                    session.commit()
+                    raise Exception("No available GSM modules found")
+                
+                # Create SMS record
+                message_content = f"Your verification code is: {sms_code}. Valid for 10 minutes."
                 sms_message = SMSMessage(
                     phone_number=phone_number,
                     message_content=message_content,
                     message_type="verification",
                     status=SMSStatus.PENDING,
-                    registration_id=registration_id
+                    registration_id=registration_id,
+                    modem_id=available_modem.id
                 )
-                
                 session.add(sms_message)
                 session.commit()
+                session.refresh(sms_message)
                 
-                # Here you would integrate with actual SMS service
-                # For now, we'll just log it
-                logger.info("SMS verification code sent", 
-                           phone_number=phone_number, 
-                           code=sms_code)
+                # Send SMS using SIM900 module
+                result = await sim900_service.send_sms_via_sim900(
+                    modem_id=available_modem.id,
+                    phone_number=phone_number,
+                    message=message_content
+                )
+                
+                # Update SMS status based on result
+                if result["success"]:
+                    sms_message.status = SMSStatus.SENT
+                    sms_message.sent_at = datetime.utcnow()
+                    logger.info("SMS verification code sent successfully", 
+                               phone_number=phone_number, 
+                               modem_id=available_modem.id)
+                else:
+                    sms_message.status = SMSStatus.FAILED
+                    sms_message.error_message = result.get("error", "Unknown error")
+                    logger.error("Failed to send SMS verification code", 
+                                phone_number=phone_number, 
+                                error=result.get("error"))
+                    raise Exception(f"SMS sending failed: {result.get('error')}")
+                
+                session.commit()
                 
         except Exception as e:
             logger.error("Failed to send SMS", error=str(e))
+            raise
             
     def _get_default_tenant_id(self) -> UUID:
         """Get default tenant ID for new users."""

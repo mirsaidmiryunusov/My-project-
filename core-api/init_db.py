@@ -10,11 +10,11 @@ import asyncio
 from datetime import datetime, timedelta
 from uuid import uuid4
 
-from sqlmodel import SQLModel, create_engine, Session
+from sqlmodel import SQLModel, create_engine, Session, select
 from passlib.context import CryptContext
 
 from models import (
-    Tenant, User, Modem, AdminSettings,
+    Tenant, User, Modem, AdminSettings, AIToolConfig,
     UserRole, ModemStatus, PhoneNumberType
 )
 from config import CoreAPIConfig

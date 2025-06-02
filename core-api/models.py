@@ -884,6 +884,36 @@ class ConversationContext(UUIDMixin, TimestampMixin, table=True):
     )
 
 
+class AIToolConfig(UUIDMixin, TimestampMixin, table=True):
+    """
+    AI tool configuration model for storing user API integrations.
+    
+    Stores API keys and configurations for external services.
+    """
+    __tablename__ = "ai_tool_configs"
+    
+    # Basic Information
+    user_id: UUID = Field(foreign_key="users.id", nullable=False)
+    tool_name: str = Field(max_length=50, nullable=False)  # gmail, calendar, slack, etc.
+    
+    # Configuration
+    config: Dict[str, str] = Field(default_factory=dict, sa_column=Column(JSON))  # API keys, tokens, etc.
+    is_active: bool = Field(default=True, nullable=False)
+    
+    # Metadata
+    last_used_at: Optional[datetime] = None
+    usage_count: int = Field(default=0, nullable=False)
+    
+    # Relationships
+    user: "User" = Relationship()
+    
+    __table_args__ = (
+        Index("idx_ai_tool_user", "user_id"),
+        Index("idx_ai_tool_name", "tool_name"),
+        UniqueConstraint("user_id", "tool_name", name="uq_user_tool"),
+    )
+
+
 class AdminSettings(UUIDMixin, TimestampMixin, table=True):
     """
     Admin settings model for system configuration.

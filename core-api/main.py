@@ -68,7 +68,18 @@ structlog.configure(
 
 logger = structlog.get_logger(__name__)
 
-# Prometheus metrics
+# Prometheus metrics - clear registry first to avoid duplicates
+from prometheus_client import REGISTRY, CollectorRegistry
+try:
+    # Clear existing collectors
+    for collector in list(REGISTRY._collector_to_names.keys()):
+        try:
+            REGISTRY.unregister(collector)
+        except:
+            pass
+except:
+    pass
+
 ACTIVE_TENANTS = Gauge('core_api_active_tenants', 'Number of active tenants')
 ACTIVE_CAMPAIGNS = Gauge('core_api_active_campaigns', 'Number of active campaigns')
 API_REQUESTS = Counter('core_api_requests_total', 'Total API requests', ['method', 'endpoint'])

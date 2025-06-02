@@ -21,7 +21,7 @@ from typing import Dict, List, Any, Optional
 from uuid import UUID
 import structlog
 from sqlmodel import Session, select
-from database import get_engine
+from database import get_db_manager
 from models import User, AIToolConfig, ConversationContext
 
 logger = structlog.get_logger(__name__)
@@ -31,7 +31,8 @@ class AIToolsService:
     """Service for managing AI tools and external API integrations."""
     
     def __init__(self):
-        self.engine = get_engine()
+        self.db_manager = get_db_manager()
+        self.engine = self.db_manager.engine
         self.available_tools = {
             "gmail": {
                 "name": "Gmail API",
