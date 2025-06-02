@@ -7,7 +7,7 @@ modeling, customer behavior analysis, and revenue optimization insights.
 
 Key Features:
 - Real-time call analytics and performance metrics
-- Customer behavior analysis and segmentation
+- Lead behavior analysis and segmentation
 - Revenue optimization and forecasting
 - Predictive churn analysis and retention insights
 - Campaign performance analytics
@@ -32,11 +32,10 @@ import pandas as pd
 from sqlmodel import Session, select, func, and_, or_
 from fastapi import HTTPException, status
 
-from .config import get_settings
-from .database import get_session
-from .models import (
-    Tenant, CallLog, Customer, Lead, Order, Campaign,
-    AgentPerformance, CustomerSegment, AnalyticsReport
+from config import get_settings
+from database import get_session
+from models import (
+    Tenant, Call, Lead, Campaign
 )
 
 logger = logging.getLogger(__name__)
@@ -66,7 +65,7 @@ class TimeGranularity(str, Enum):
 
 
 class SegmentCriteria(str, Enum):
-    """Customer segmentation criteria"""
+    """Lead segmentation criteria"""
     VALUE = "value"
     FREQUENCY = "frequency"
     RECENCY = "recency"
@@ -97,8 +96,8 @@ class TrendAnalysis:
 
 
 @dataclass
-class CustomerInsight:
-    """Customer behavior insight"""
+class LeadInsight:
+    """Lead behavior insight"""
     customer_id: str
     segment: str
     lifetime_value: float
@@ -201,10 +200,10 @@ class AnalyticsEngine:
             with get_session() as session:
                 # Get call logs for the period
                 call_logs = session.exec(
-                    select(CallLog).where(
+                    select(Call).where(
                         and_(
-                            CallLog.tenant_id == tenant_id,
-                            CallLog.start_time >= start_time
+                            Call.tenant_id == tenant_id,
+                            Call.start_time >= start_time
                         )
                     )
                 ).all()
@@ -265,7 +264,7 @@ class AnalyticsEngine:
         self,
         tenant_id: str,
         customer_id: Optional[str] = None
-    ) -> Union[CustomerInsight, List[CustomerInsight]]:
+    ) -> Union[LeadInsight, List[LeadInsight]]:
         """
         Analyze customer behavior and generate insights.
         
@@ -274,17 +273,17 @@ class AnalyticsEngine:
             customer_id: Optional specific customer ID
             
         Returns:
-            Customer insights (single or list)
+            Lead insights (single or list)
         """
         try:
             with get_session() as session:
                 if customer_id:
                     # Analyze specific customer
-                    customer = session.get(Customer, customer_id)
+                    customer = session.get(Lead, customer_id)
                     if not customer or customer.tenant_id != tenant_id:
                         raise HTTPException(
                             status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Customer not found"
+                            detail="Lead not found"
                         )
                     
                     insight = await self._analyze_single_customer(session, customer)
@@ -292,7 +291,7 @@ class AnalyticsEngine:
                 else:
                     # Analyze all customers for tenant
                     customers = session.exec(
-                        select(Customer).where(Customer.tenant_id == tenant_id)
+                        select(Lead).where(Lead.tenant_id == tenant_id)
                     ).all()
                     
                     insights = []
@@ -331,11 +330,11 @@ class AnalyticsEngine:
             with get_session() as session:
                 # Get orders for the period
                 orders = session.exec(
-                    select(Order).where(
+                    select(Lead).where(
                         and_(
-                            Order.tenant_id == tenant_id,
-                            Order.created_at >= start_time,
-                            Order.status == "completed"
+                            Lead.tenant_id == tenant_id,
+                            Lead.created_at >= start_time,
+                            Lead.status == "completed"
                         )
                     )
                 ).all()
@@ -357,12 +356,12 @@ class AnalyticsEngine:
                 # Calculate revenue growth
                 previous_period_start = start_time - time_period
                 previous_orders = session.exec(
-                    select(Order).where(
+                    select(Lead).where(
                         and_(
-                            Order.tenant_id == tenant_id,
-                            Order.created_at >= previous_period_start,
-                            Order.created_at < start_time,
-                            Order.status == "completed"
+                            Lead.tenant_id == tenant_id,
+                            Lead.created_at >= previous_period_start,
+                            Lead.created_at < start_time,
+                            Lead.status == "completed"
                         )
                     )
                 ).all()
@@ -428,7 +427,7 @@ class AnalyticsEngine:
         try:
             with get_session() as session:
                 customers = session.exec(
-                    select(Customer).where(Customer.tenant_id == tenant_id)
+                    select(Lead).where(Lead.tenant_id == tenant_id)
                 ).all()
                 
                 predictions = []
@@ -482,12 +481,12 @@ class AnalyticsEngine:
             criteria: Segmentation criteria
             
         Returns:
-            Customer segments
+            Lead segments
         """
         try:
             with get_session() as session:
                 customers = session.exec(
-                    select(Customer).where(Customer.tenant_id == tenant_id)
+                    select(Lead).where(Lead.tenant_id == tenant_id)
                 ).all()
                 
                 segments = defaultdict(list)
@@ -552,7 +551,7 @@ class AnalyticsEngine:
                         
                     # Get campaign calls
                     campaign_calls = session.exec(
-                        select(CallLog).where(CallLog.campaign_id == campaign.id)
+                        select(Call).where(Call.campaign_id == campaign.id)
                     ).all()
                     
                     # Calculate campaign metrics
@@ -566,7 +565,7 @@ class AnalyticsEngine:
                     
                     # Get campaign orders
                     campaign_orders = session.exec(
-                        select(Order).where(Order.campaign_id == campaign.id)
+                        select(Lead).where(Lead.campaign_id == campaign.id)
                     ).all()
                     
                     campaign_analytics = {
@@ -606,10 +605,10 @@ class AnalyticsEngine:
         """Calculate specific metric value"""
         if metric_type == MetricType.CALL_VOLUME:
             result = session.exec(
-                select(func.count(CallLog.id)).where(
+                select(func.count(Call.id)).where(
                     and_(
-                        CallLog.tenant_id == tenant_id,
-                        CallLog.start_time >= start_time
+                        Call.tenant_id == tenant_id,
+                        Call.start_time >= start_time
                     )
                 )
             ).first()
@@ -617,11 +616,11 @@ class AnalyticsEngine:
         
         elif metric_type == MetricType.CALL_DURATION:
             result = session.exec(
-                select(func.avg(CallLog.duration)).where(
+                select(func.avg(Call.duration)).where(
                     and_(
-                        CallLog.tenant_id == tenant_id,
-                        CallLog.start_time >= start_time,
-                        CallLog.duration.isnot(None)
+                        Call.tenant_id == tenant_id,
+                        Call.start_time >= start_time,
+                        Call.duration.isnot(None)
                     )
                 )
             ).first()
@@ -666,7 +665,7 @@ class AnalyticsEngine:
         }
         return units.get(metric_type, "units")
     
-    def _group_calls_by_day(self, call_logs: List[CallLog]) -> Dict[str, Dict[str, Any]]:
+    def _group_calls_by_day(self, call_logs: List[Call]) -> Dict[str, Dict[str, Any]]:
         """Group calls by day for trend analysis"""
         daily_metrics = defaultdict(lambda: {"calls": 0, "duration": 0, "successful": 0})
         
@@ -733,7 +732,7 @@ class AnalyticsEngine:
             confidence_level=1 - p_value if p_value < 1 else 0
         )
     
-    def _identify_peak_hours(self, call_logs: List[CallLog]) -> Dict[str, int]:
+    def _identify_peak_hours(self, call_logs: List[Call]) -> Dict[str, int]:
         """Identify peak calling hours"""
         hourly_counts = defaultdict(int)
         
@@ -743,7 +742,7 @@ class AnalyticsEngine:
         
         return dict(hourly_counts)
     
-    def _analyze_call_types(self, call_logs: List[CallLog]) -> Dict[str, int]:
+    def _analyze_call_types(self, call_logs: List[Call]) -> Dict[str, int]:
         """Analyze distribution of call types"""
         call_types = defaultdict(int)
         
@@ -753,11 +752,11 @@ class AnalyticsEngine:
         
         return dict(call_types)
     
-    async def _analyze_single_customer(self, session: Session, customer: Customer) -> CustomerInsight:
+    async def _analyze_single_customer(self, session: Session, customer: Lead) -> LeadInsight:
         """Analyze a single customer's behavior"""
         # Calculate lifetime value
         orders = session.exec(
-            select(Order).where(Order.customer_id == customer.id)
+            select(Lead).where(Lead.customer_id == customer.id)
         ).all()
         lifetime_value = sum([order.total_amount for order in orders])
         
@@ -775,7 +774,7 @@ class AnalyticsEngine:
             churn_probability, engagement_score, lifetime_value
         )
         
-        return CustomerInsight(
+        return LeadInsight(
             customer_id=customer.id,
             segment=segment,
             lifetime_value=lifetime_value,
@@ -785,14 +784,14 @@ class AnalyticsEngine:
             satisfaction_score=customer.satisfaction_score or 0.0
         )
     
-    async def _calculate_churn_score(self, session: Session, customer: Customer) -> float:
+    async def _calculate_churn_score(self, session: Session, customer: Lead) -> float:
         """Calculate customer churn probability"""
         # Get recent interactions
         recent_calls = session.exec(
-            select(CallLog).where(
+            select(Call).where(
                 and_(
-                    CallLog.customer_id == customer.id,
-                    CallLog.start_time >= datetime.utcnow() - timedelta(days=30)
+                    Call.customer_id == customer.id,
+                    Call.start_time >= datetime.utcnow() - timedelta(days=30)
                 )
             )
         ).all()
@@ -825,15 +824,15 @@ class AnalyticsEngine:
         
         return min(churn_score, 1.0)
     
-    async def _calculate_engagement_score(self, session: Session, customer: Customer) -> float:
+    async def _calculate_engagement_score(self, session: Session, customer: Lead) -> float:
         """Calculate customer engagement score"""
         # Get interaction history
         calls = session.exec(
-            select(CallLog).where(CallLog.customer_id == customer.id)
+            select(Call).where(Call.customer_id == customer.id)
         ).all()
         
         orders = session.exec(
-            select(Order).where(Order.customer_id == customer.id)
+            select(Lead).where(Lead.customer_id == customer.id)
         ).all()
         
         # Calculate engagement factors
@@ -870,12 +869,12 @@ class AnalyticsEngine:
     async def _get_recent_interactions(self, session: Session, customer_id: str) -> Dict[str, Any]:
         """Get recent customer interactions"""
         recent_calls = session.exec(
-            select(CallLog).where(
+            select(Call).where(
                 and_(
-                    CallLog.customer_id == customer_id,
-                    CallLog.start_time >= datetime.utcnow() - timedelta(days=30)
+                    Call.customer_id == customer_id,
+                    Call.start_time >= datetime.utcnow() - timedelta(days=30)
                 )
-            ).order_by(CallLog.start_time.desc())
+            ).order_by(Call.start_time.desc())
         ).all()
         
         return {
@@ -913,13 +912,13 @@ class AnalyticsEngine:
     async def _apply_segmentation_criterion(
         self,
         session: Session,
-        customer: Customer,
+        customer: Lead,
         criterion: SegmentCriteria
     ) -> str:
         """Apply segmentation criterion to customer"""
         if criterion == SegmentCriteria.VALUE:
             orders = session.exec(
-                select(Order).where(Order.customer_id == customer.id)
+                select(Lead).where(Lead.customer_id == customer.id)
             ).all()
             total_value = sum([order.total_amount for order in orders])
             
@@ -932,7 +931,7 @@ class AnalyticsEngine:
         
         elif criterion == SegmentCriteria.FREQUENCY:
             calls = session.exec(
-                select(CallLog).where(CallLog.customer_id == customer.id)
+                select(Call).where(Call.customer_id == customer.id)
             ).all()
             
             if len(calls) >= 20:
@@ -956,7 +955,7 @@ class AnalyticsEngine:
         
         return "unknown"
     
-    async def _determine_customer_segment(self, session: Session, customer: Customer) -> str:
+    async def _determine_customer_segment(self, session: Session, customer: Lead) -> str:
         """Determine overall customer segment"""
         value_segment = await self._apply_segmentation_criterion(session, customer, SegmentCriteria.VALUE)
         frequency_segment = await self._apply_segmentation_criterion(session, customer, SegmentCriteria.FREQUENCY)
@@ -992,7 +991,7 @@ class AnalyticsEngine:
         else:
             return "maintain_relationship"
     
-    def _generate_revenue_forecast(self, orders: List[Order]) -> Dict[str, float]:
+    def _generate_revenue_forecast(self, orders: List[Lead]) -> Dict[str, float]:
         """Generate revenue forecast based on historical data"""
         if len(orders) < 3:
             return {"next_month": 0.0, "next_quarter": 0.0}
@@ -1013,7 +1012,7 @@ class AnalyticsEngine:
             "next_quarter": avg_monthly_revenue * 3
         }
     
-    def _calculate_campaign_roi(self, campaign: Campaign, orders: List[Order]) -> float:
+    def _calculate_campaign_roi(self, campaign: Campaign, orders: List[Lead]) -> float:
         """Calculate campaign ROI"""
         total_revenue = sum([order.total_amount for order in orders])
         campaign_cost = campaign.budget or 0
