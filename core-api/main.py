@@ -45,6 +45,9 @@ from client_registration_service import ClientRegistrationService
 from modem_management_service import ModemManagementService
 from client_api import client_router
 from admin_api import admin_router
+from simple_admin_api import simple_admin_router
+from call_webhook_api import call_webhook_router
+from gsm_status_api import gsm_status_router
 from telegram_api import get_telegram_router
 
 
@@ -191,17 +194,22 @@ app.mount("/metrics", metrics_app)
 # Include API routers
 app.include_router(client_router)
 app.include_router(admin_router)
+app.include_router(simple_admin_router)
+app.include_router(call_webhook_router)
+app.include_router(gsm_status_router)
 app.include_router(get_telegram_router(), prefix="/api/v1")
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Root redirect
+# Redirect root to beautiful site
 @app.get("/")
-async def root():
-    """Redirect to client registration page."""
+async def redirect_to_beautiful_site():
+    """Redirect root URL to beautiful site"""
     from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/static/index.html")
+    return RedirectResponse(url="/static/beautiful-index.html")
+
+# Remove duplicate root endpoint - already defined above
 
 
 # Health and Status Endpoints
