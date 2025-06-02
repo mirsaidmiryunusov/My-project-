@@ -45,6 +45,7 @@ from client_registration_service import ClientRegistrationService
 from modem_management_service import ModemManagementService
 from client_api import client_router
 from admin_api import admin_router
+from telegram_api import get_telegram_router
 
 
 # Configure structured logging
@@ -190,6 +191,7 @@ app.mount("/metrics", metrics_app)
 # Include API routers
 app.include_router(client_router)
 app.include_router(admin_router)
+app.include_router(get_telegram_router(), prefix="/api/v1")
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
