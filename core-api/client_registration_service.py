@@ -157,6 +157,10 @@ class ClientRegistrationService:
         """
         try:
             with Session(self.engine) as session:
+                # Convert string to UUID if needed
+                if isinstance(registration_id, str):
+                    registration_id = UUID(registration_id)
+                
                 registration = session.get(ClientRegistration, registration_id)
                 
                 if not registration:
@@ -213,7 +217,7 @@ class ClientRegistrationService:
                     role=UserRole.AGENT,
                     is_active=True,
                     is_verified=True,
-                    tenant_id=await self._get_default_tenant_id()
+                    tenant_id=self._get_default_tenant_id()
                 )
                 
                 session.add(user)
@@ -260,7 +264,9 @@ class ClientRegistrationService:
         """
         try:
             with Session(self.engine) as session:
-                user = session.get(User, user_id)
+                # Convert string to UUID
+                user_uuid = UUID(user_id) if isinstance(user_id, str) else user_id
+                user = session.get(User, user_uuid)
                 if not user:
                     return {
                         "success": False,
@@ -270,7 +276,7 @@ class ClientRegistrationService:
                 # Check if user already has an active assignment
                 existing_assignment = session.exec(
                     select(TemporaryPhoneAssignment).where(
-                        TemporaryPhoneAssignment.user_id == user_id,
+                        TemporaryPhoneAssignment.user_id == user_uuid,
                         TemporaryPhoneAssignment.is_active == True,
                         TemporaryPhoneAssignment.expires_at > datetime.utcnow()
                     )
@@ -418,7 +424,9 @@ class ClientRegistrationService:
         """
         try:
             with Session(self.engine) as session:
-                user = session.get(User, user_id)
+                # Convert string to UUID
+                user_uuid = UUID(user_id) if isinstance(user_id, str) else user_id
+                user = session.get(User, user_uuid)
                 if not user:
                     return {
                         "success": False,
@@ -428,7 +436,7 @@ class ClientRegistrationService:
                 # Check if user already has an active subscription
                 existing_subscription = session.exec(
                     select(Subscription).where(
-                        Subscription.user_id == user_id,
+                        Subscription.user_id == user_uuid,
                         Subscription.status.in_([SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL])
                     )
                 ).first()
@@ -652,7 +660,7 @@ class ClientRegistrationService:
         except Exception as e:
             logger.error("Failed to send SMS", error=str(e))
             
-    async def _get_default_tenant_id(self) -> UUID:
+    def _get_default_tenant_id(self) -> UUID:
         """Get default tenant ID for new users."""
         # This should be configured based on your tenant setup
         # For now, return a placeholder
