@@ -26,6 +26,7 @@ class CoreAPIConfig(BaseSettings):
     app_version: str = Field(default="1.0.0", description="Application version")
     debug: bool = Field(default=False, description="Debug mode")
     environment: str = Field(default="production", description="Environment (development/staging/production)")
+    development_mode: bool = Field(default=True, description="Development mode for SMS simulation")
     
     # Server Configuration
     host: str = Field(default="0.0.0.0", description="Server host")
