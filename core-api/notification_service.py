@@ -40,11 +40,10 @@ from jinja2 import Template, Environment, BaseLoader
 from sqlmodel import Session, select, and_, or_
 from fastapi import HTTPException, status
 
-from .config import get_settings
-from .database import get_session
-from .models import (
-    Tenant, Customer, NotificationTemplate, NotificationLog,
-    NotificationPreference, DeliveryStatus
+from config import get_settings
+from database import get_session
+from models import (
+    Tenant, Lead
 )
 
 logger = logging.getLogger(__name__)
@@ -69,7 +68,7 @@ class NotificationPriority(str, Enum):
     URGENT = "urgent"
 
 
-class DeliveryStatusEnum(str, Enum):
+class LeadEnum(str, Enum):
     """Notification delivery status"""
     PENDING = "pending"
     SENT = "sent"
@@ -113,7 +112,7 @@ class NotificationResult:
     """Notification delivery result"""
     notification_id: str
     channel: NotificationChannel
-    status: DeliveryStatusEnum
+    status: LeadEnum
     delivered_at: Optional[datetime]
     error_message: Optional[str]
     provider_response: Optional[Dict[str, Any]]
@@ -222,7 +221,7 @@ class NotificationService:
                         results.append(NotificationResult(
                             notification_id=notification_id,
                             channel=channel,
-                            status=DeliveryStatusEnum.FAILED,
+                            status=LeadEnum.FAILED,
                             delivered_at=None,
                             error_message="Rate limit exceeded",
                             provider_response=None
@@ -232,7 +231,7 @@ class NotificationService:
                     results.append(NotificationResult(
                         notification_id=notification_id,
                         channel=channel,
-                        status=DeliveryStatusEnum.FAILED,
+                        status=LeadEnum.FAILED,
                         delivered_at=None,
                         error_message=str(e),
                         provider_response=None
@@ -323,7 +322,7 @@ class NotificationService:
         notification_type: NotificationType,
         templates: Dict[NotificationChannel, Dict[str, str]],
         metadata: Optional[Dict[str, Any]] = None
-    ) -> NotificationTemplate:
+    ) -> Lead:
         """
         Create a new notification template.
         
@@ -339,7 +338,7 @@ class NotificationService:
         """
         try:
             with get_session() as session:
-                template = NotificationTemplate(
+                template = Lead(
                     tenant_id=tenant_id,
                     name=template_name,
                     notification_type=notification_type,
@@ -369,12 +368,12 @@ class NotificationService:
         tenant_id: str,
         preferences: Dict[NotificationChannel, bool],
         notification_types: Optional[Dict[NotificationType, bool]] = None
-    ) -> NotificationPreference:
+    ) -> Lead:
         """
         Update customer notification preferences.
         
         Args:
-            customer_id: Customer identifier
+            customer_id: Lead identifier
             tenant_id: Tenant identifier
             preferences: Channel preferences
             notification_types: Optional notification type preferences
@@ -386,10 +385,10 @@ class NotificationService:
             with get_session() as session:
                 # Get existing preferences or create new
                 existing = session.exec(
-                    select(NotificationPreference).where(
+                    select(Lead).where(
                         and_(
-                            NotificationPreference.customer_id == customer_id,
-                            NotificationPreference.tenant_id == tenant_id
+                            Lead.customer_id == customer_id,
+                            Lead.tenant_id == tenant_id
                         )
                     )
                 ).first()
@@ -401,7 +400,7 @@ class NotificationService:
                     existing.updated_at = datetime.utcnow()
                     preference = existing
                 else:
-                    preference = NotificationPreference(
+                    preference = Lead(
                         customer_id=customer_id,
                         tenant_id=tenant_id,
                         channel_preferences=preferences,
@@ -428,7 +427,7 @@ class NotificationService:
         self,
         notification_id: str,
         tenant_id: str
-    ) -> List[DeliveryStatus]:
+    ) -> List[Lead]:
         """
         Get delivery status for a notification.
         
@@ -442,10 +441,10 @@ class NotificationService:
         try:
             with get_session() as session:
                 statuses = session.exec(
-                    select(DeliveryStatus).where(
+                    select(Lead).where(
                         and_(
-                            DeliveryStatus.notification_id == notification_id,
-                            DeliveryStatus.tenant_id == tenant_id
+                            Lead.notification_id == notification_id,
+                            Lead.tenant_id == tenant_id
                         )
                     )
                 ).all()
@@ -515,10 +514,10 @@ class NotificationService:
         try:
             with get_session() as session:
                 preferences = session.exec(
-                    select(NotificationPreference).where(
+                    select(Lead).where(
                         and_(
-                            NotificationPreference.customer_id == recipient_id,
-                            NotificationPreference.tenant_id == tenant_id
+                            Lead.customer_id == recipient_id,
+                            Lead.tenant_id == tenant_id
                         )
                     )
                 ).first()
@@ -543,15 +542,15 @@ class NotificationService:
         self,
         recipient_id: str,
         tenant_id: str
-    ) -> Optional[Customer]:
+    ) -> Optional[Lead]:
         """Get recipient details from database"""
         try:
             with get_session() as session:
                 customer = session.exec(
-                    select(Customer).where(
+                    select(Lead).where(
                         and_(
-                            Customer.id == recipient_id,
-                            Customer.tenant_id == tenant_id
+                            Lead.id == recipient_id,
+                            Lead.tenant_id == tenant_id
                         )
                     )
                 ).first()
@@ -565,7 +564,7 @@ class NotificationService:
     async def _prepare_notification_content(
         self,
         request: NotificationRequest,
-        recipient: Customer,
+        recipient: Lead,
         notification_id: str
     ) -> Dict[NotificationChannel, Dict[str, str]]:
         """Prepare notification content for all channels"""
@@ -617,7 +616,7 @@ class NotificationService:
     async def _send_through_channel(
         self,
         channel: NotificationChannel,
-        recipient: Customer,
+        recipient: Lead,
         content: Dict[NotificationChannel, Dict[str, str]],
         request: NotificationRequest,
         notification_id: str
@@ -660,7 +659,7 @@ class NotificationService:
             return NotificationResult(
                 notification_id=notification_id,
                 channel=channel,
-                status=DeliveryStatusEnum.FAILED,
+                status=LeadEnum.FAILED,
                 delivered_at=None,
                 error_message=str(e),
                 provider_response=None
@@ -691,7 +690,7 @@ class NotificationService:
             return NotificationResult(
                 notification_id=notification_id,
                 channel=NotificationChannel.SMS,
-                status=DeliveryStatusEnum.SENT,
+                status=LeadEnum.SENT,
                 delivered_at=datetime.utcnow(),
                 error_message=None,
                 provider_response=provider_response
@@ -701,7 +700,7 @@ class NotificationService:
             return NotificationResult(
                 notification_id=notification_id,
                 channel=NotificationChannel.SMS,
-                status=DeliveryStatusEnum.FAILED,
+                status=LeadEnum.FAILED,
                 delivered_at=None,
                 error_message=str(e),
                 provider_response=None
@@ -730,7 +729,7 @@ class NotificationService:
             return NotificationResult(
                 notification_id=notification_id,
                 channel=NotificationChannel.EMAIL,
-                status=DeliveryStatusEnum.SENT,
+                status=LeadEnum.SENT,
                 delivered_at=datetime.utcnow(),
                 error_message=None,
                 provider_response=provider_response
@@ -740,7 +739,7 @@ class NotificationService:
             return NotificationResult(
                 notification_id=notification_id,
                 channel=NotificationChannel.EMAIL,
-                status=DeliveryStatusEnum.FAILED,
+                status=LeadEnum.FAILED,
                 delivered_at=None,
                 error_message=str(e),
                 provider_response=None
@@ -765,7 +764,7 @@ class NotificationService:
             return NotificationResult(
                 notification_id=notification_id,
                 channel=NotificationChannel.PUSH,
-                status=DeliveryStatusEnum.SENT,
+                status=LeadEnum.SENT,
                 delivered_at=datetime.utcnow(),
                 error_message=None,
                 provider_response=provider_response
@@ -775,7 +774,7 @@ class NotificationService:
             return NotificationResult(
                 notification_id=notification_id,
                 channel=NotificationChannel.PUSH,
-                status=DeliveryStatusEnum.FAILED,
+                status=LeadEnum.FAILED,
                 delivered_at=None,
                 error_message=str(e),
                 provider_response=None
@@ -805,7 +804,7 @@ class NotificationService:
                 return NotificationResult(
                     notification_id=notification_id,
                     channel=NotificationChannel.WEBHOOK,
-                    status=DeliveryStatusEnum.DELIVERED,
+                    status=LeadEnum.DELIVERED,
                     delivered_at=datetime.utcnow(),
                     error_message=None,
                     provider_response={"status_code": response.status_code}
@@ -817,7 +816,7 @@ class NotificationService:
             return NotificationResult(
                 notification_id=notification_id,
                 channel=NotificationChannel.WEBHOOK,
-                status=DeliveryStatusEnum.FAILED,
+                status=LeadEnum.FAILED,
                 delivered_at=None,
                 error_message=str(e),
                 provider_response=None
@@ -837,16 +836,16 @@ class NotificationService:
         self,
         template_id: str,
         tenant_id: str
-    ) -> Optional[NotificationTemplate]:
+    ) -> Optional[Lead]:
         """Get notification template from database"""
         try:
             with get_session() as session:
                 template = session.exec(
-                    select(NotificationTemplate).where(
+                    select(Lead).where(
                         and_(
-                            NotificationTemplate.id == template_id,
-                            NotificationTemplate.tenant_id == tenant_id,
-                            NotificationTemplate.is_active == True
+                            Lead.id == template_id,
+                            Lead.tenant_id == tenant_id,
+                            Lead.is_active == True
                         )
                     )
                 ).first()
@@ -864,7 +863,7 @@ class NotificationService:
         template_data: Dict[str, Any]
     ) -> Dict[str, str]:
         """Generate default content for channel and type"""
-        recipient_name = template_data.get("recipient", {}).get("first_name", "Customer")
+        recipient_name = template_data.get("recipient", {}).get("first_name", "Lead")
         
         if notification_type == NotificationType.WELCOME:
             if channel == NotificationChannel.SMS:
@@ -924,7 +923,7 @@ class NotificationService:
         """Log notification attempt and results"""
         try:
             with get_session() as session:
-                log_entry = NotificationLog(
+                log_entry = Lead(
                     notification_id=notification_id,
                     tenant_id=request.tenant_id,
                     recipient_id=request.recipient_id,

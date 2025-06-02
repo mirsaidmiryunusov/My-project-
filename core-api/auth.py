@@ -548,3 +548,57 @@ class TenantIsolation:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied to resource from different tenant"
             )
+
+
+# Additional authentication functions for client registration
+from datetime import datetime, timedelta
+from typing import Optional
+import jwt
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """
+    Create JWT access token.
+    
+    Args:
+        data: Token payload data
+        expires_delta: Token expiration time
+        
+    Returns:
+        JWT token string
+    """
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(hours=24)
+    
+    to_encode.update({"exp": expire})
+    
+    # Use a default secret key for development
+    secret_key = "your-secret-key-here"  # In production, use environment variable
+    algorithm = "HS256"
+    
+    encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=algorithm)
+    return encoded_jwt
+
+
+async def require_admin_role(current_user: User = Depends(get_current_user)) -> User:
+    """
+    Require admin role for access.
+    
+    Args:
+        current_user: Current authenticated user
+        
+    Returns:
+        Current user if admin
+        
+    Raises:
+        HTTPException: If user is not admin
+    """
+    if current_user.role not in [UserRole.SUPER_ADMIN, UserRole.TENANT_ADMIN]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+    
+    return current_user

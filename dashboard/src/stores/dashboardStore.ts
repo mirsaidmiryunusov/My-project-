@@ -181,7 +181,9 @@ export const useDashboardStore = create<DashboardStore>()(
           const response = await apiClient.client.get('/dashboard/calls/live', { params: { limit } });
           
           if (response.data.success && response.data.data) {
-            set({ recentCalls: response.data.data });
+            // The API returns { success: true, data: { calls: [], summary: {} } }
+            const calls = response.data.data.calls || [];
+            set({ recentCalls: calls });
           } else {
             throw new Error(response.data.message || 'Failed to fetch recent calls');
           }
@@ -196,7 +198,9 @@ export const useDashboardStore = create<DashboardStore>()(
           const response = await apiClient.getCampaigns();
           
           if (response.success && response.data) {
-            set({ campaigns: response.data });
+            // The API returns { success: true, data: { campaigns: [], pagination: {} } }
+            const campaigns = response.data.campaigns || [];
+            set({ campaigns: campaigns });
           } else {
             throw new Error(response.message || 'Failed to fetch campaigns');
           }
@@ -211,7 +215,9 @@ export const useDashboardStore = create<DashboardStore>()(
           const response = await apiClient.getContacts(page, limit);
           
           if (response.success && response.data) {
-            set({ contacts: response.data });
+            // The API returns { success: true, data: { customers: [], pagination: {} } }
+            const contacts = response.data.customers || [];
+            set({ contacts: contacts });
           } else {
             throw new Error(response.message || 'Failed to fetch contacts');
           }

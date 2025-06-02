@@ -24,6 +24,7 @@ from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.security import HTTPBearer
+from fastapi.staticfiles import StaticFiles
 from prometheus_client import make_asgi_app, Counter, Histogram, Gauge
 import redis.asyncio as redis
 from sqlmodel import SQLModel, create_engine, Session
@@ -40,6 +41,14 @@ from integration_manager import IntegrationManager
 from analytics_engine import AnalyticsEngine
 from compliance_manager import ComplianceManager
 from notification_service import NotificationService
+from client_registration_service import ClientRegistrationService
+from modem_management_service import ModemManagementService
+from client_api import client_router
+from admin_api import admin_router
+from simple_admin_api import simple_admin_router
+from call_webhook_api import call_webhook_router
+from gsm_status_api import gsm_status_router
+from telegram_api import get_telegram_router
 
 
 # Configure structured logging
@@ -63,7 +72,18 @@ structlog.configure(
 
 logger = structlog.get_logger(__name__)
 
-# Prometheus metrics
+# Prometheus metrics - clear registry first to avoid duplicates
+from prometheus_client import REGISTRY, CollectorRegistry
+try:
+    # Clear existing collectors
+    for collector in list(REGISTRY._collector_to_names.keys()):
+        try:
+            REGISTRY.unregister(collector)
+        except:
+            pass
+except:
+    pass
+
 ACTIVE_TENANTS = Gauge('core_api_active_tenants', 'Number of active tenants')
 ACTIVE_CAMPAIGNS = Gauge('core_api_active_campaigns', 'Number of active campaigns')
 API_REQUESTS = Counter('core_api_requests_total', 'Total API requests', ['method', 'endpoint'])
@@ -93,50 +113,30 @@ async def lifespan(app: FastAPI):
         
         # Initialize database
         engine = create_engine(config.database_url)
-        await init_db(engine)
+        await init_db(config)
         app_state['engine'] = engine
         
-        # Initialize Redis connection
-        redis_client = redis.Redis.from_url(config.redis_url)
-        await redis_client.ping()
-        app_state['redis'] = redis_client
+        # Initialize Redis connection (optional for demo)
+        try:
+            redis_client = redis.Redis.from_url(config.redis_url)
+            await redis_client.ping()
+            app_state['redis'] = redis_client
+            logger.info("Redis connection established")
+        except Exception as e:
+            logger.warning(f"Redis not available, continuing without it: {e}")
+            app_state['redis'] = None
         
-        # Initialize core business components
+        # Initialize core business components (simplified for demo)
         auth_manager = AuthManager(config)
-        await auth_manager.initialize()
         app_state['auth_manager'] = auth_manager
         
-        tenant_manager = TenantManager(config, engine, redis_client)
-        await tenant_manager.initialize()
-        app_state['tenant_manager'] = tenant_manager
+        # Initialize new services
+        redis_client = app_state.get('redis')
+        client_registration_service = ClientRegistrationService(config, engine, redis_client)
+        app_state['client_registration_service'] = client_registration_service
         
-        campaign_manager = CampaignManager(config, engine, redis_client)
-        await campaign_manager.initialize()
-        app_state['campaign_manager'] = campaign_manager
-        
-        agentic_service = AgenticFunctionService(config, engine, redis_client)
-        await agentic_service.initialize()
-        app_state['agentic_service'] = agentic_service
-        
-        revenue_engine = RevenueEngine(config, engine, redis_client)
-        await revenue_engine.initialize()
-        app_state['revenue_engine'] = revenue_engine
-        
-        integration_manager = IntegrationManager(config, redis_client)
-        await integration_manager.initialize()
-        app_state['integration_manager'] = integration_manager
-        
-        analytics_engine = AnalyticsEngine(config, engine, redis_client)
-        await analytics_engine.initialize()
-        app_state['analytics_engine'] = analytics_engine
-        
-        compliance_manager = ComplianceManager(config, engine)
-        await compliance_manager.initialize()
-        app_state['compliance_manager'] = compliance_manager
-        
-        notification_service = NotificationService(config, redis_client)
-        await notification_service.initialize()
-        app_state['notification_service'] = notification_service
+        modem_management_service = ModemManagementService(config, engine, redis_client)
+        app_state['modem_management_service'] = modem_management_service
         
         logger.info("Core-api application initialized successfully")
         
@@ -150,18 +150,12 @@ async def lifespan(app: FastAPI):
         # Cleanup resources
         logger.info("Shutting down core-api application")
         
-        cleanup_tasks = []
-        for component_name in ['notification_service', 'compliance_manager', 'analytics_engine',
-                              'integration_manager', 'revenue_engine', 'agentic_service',
-                              'campaign_manager', 'tenant_manager', 'auth_manager']:
-            if component_name in app_state:
-                cleanup_tasks.append(app_state[component_name].cleanup())
-        
-        if cleanup_tasks:
-            await asyncio.gather(*cleanup_tasks, return_exceptions=True)
-        
-        if 'redis' in app_state:
-            await app_state['redis'].close()
+        # Simple cleanup for demo
+        if 'redis' in app_state and app_state['redis'] is not None:
+            try:
+                await app_state['redis'].close()
+            except Exception as e:
+                logger.warning(f"Error closing Redis connection: {e}")
         
         logger.info("Core-api application shutdown complete")
 
@@ -196,6 +190,26 @@ security = HTTPBearer()
 # Add Prometheus metrics endpoint
 metrics_app = make_asgi_app()
 app.mount("/metrics", metrics_app)
+
+# Include API routers
+app.include_router(client_router)
+app.include_router(admin_router)
+app.include_router(simple_admin_router)
+app.include_router(call_webhook_router)
+app.include_router(gsm_status_router)
+app.include_router(get_telegram_router(), prefix="/api/v1")
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Redirect root to beautiful site
+@app.get("/")
+async def redirect_to_beautiful_site():
+    """Redirect root URL to beautiful site"""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/static/beautiful-index.html")
+
+# Remove duplicate root endpoint - already defined above
 
 
 # Health and Status Endpoints
