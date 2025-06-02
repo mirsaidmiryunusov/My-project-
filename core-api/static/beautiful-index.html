@@ -314,6 +314,40 @@
             box-shadow: 0 8px 25px rgba(0,0,0,0.15);
         }
 
+        .language-selector {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+
+        .language-dropdown {
+            background: rgba(255,255,255,0.9);
+            border: 1px solid rgba(102,126,234,0.3);
+            border-radius: 25px;
+            padding: 8px 16px;
+            color: #667eea;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            outline: none;
+            font-family: 'Inter', sans-serif;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .language-dropdown:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .language-dropdown option {
+            background: white;
+            color: #667eea;
+            padding: 10px;
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .container {
@@ -444,12 +478,21 @@
     </style>
 </head>
 <body>
+    <!-- Language Selector -->
+    <div class="language-selector">
+        <select class="language-dropdown" id="languageSelector" onchange="changeLanguage()">
+            <option value="uz">🇺🇿 O'zbek</option>
+            <option value="ru">🇷🇺 Русский</option>
+            <option value="en">🇺🇸 English</option>
+        </select>
+    </div>
+
     <div class="container">
         <div class="header">
             <div class="logo">
-                <i class="fas fa-robot"></i> AI Call Center
+                <i class="fas fa-robot"></i> <span data-translate="title">AI Call Center</span>
             </div>
-            <div class="subtitle">
+            <div class="subtitle" data-translate="subtitle">
                 Умный колл-центр с искусственным интеллектом
             </div>
         </div>
@@ -459,15 +502,15 @@
             <div class="step-indicator">
                 <div class="step active" id="step-1">
                     <div class="step-number">1</div>
-                    <span>Регистрация</span>
+                    <span data-translate="step1">Регистрация</span>
                 </div>
                 <div class="step" id="step-2">
                     <div class="step-number">2</div>
-                    <span>SMS Код</span>
+                    <span data-translate="step2">SMS Код</span>
                 </div>
                 <div class="step" id="step-3">
                     <div class="step-number">3</div>
-                    <span>Консультация</span>
+                    <span data-translate="step3">Консультация</span>
                 </div>
             </div>
 
@@ -477,42 +520,42 @@
             <!-- Registration Form -->
             <div class="form-section active" id="registration-section">
                 <h2 style="text-align: center; margin-bottom: 32px; color: #333; font-weight: 600;">
-                    <i class="fas fa-user-plus"></i> Создать аккаунт
+                    <i class="fas fa-user-plus"></i> <span data-translate="createAccount">Создать аккаунт</span>
                 </h2>
                 
                 <form id="registration-form">
                     <div class="form-group">
                         <label class="form-label" for="email">
-                            <i class="fas fa-envelope"></i> Email адрес
+                            <i class="fas fa-envelope"></i> <span data-translate="emailAddress">Email адрес</span>
                         </label>
-                        <input type="email" id="email" class="form-input" placeholder="example@email.com" required>
+                        <input type="email" id="email" class="form-input" data-translate-placeholder="emailAddress" placeholder="example@email.com" required>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label" for="password">
-                            <i class="fas fa-lock"></i> Пароль
+                            <i class="fas fa-lock"></i> <span data-translate="password">Пароль</span>
                         </label>
-                        <input type="password" id="password" class="form-input" placeholder="Минимум 6 символов" required>
+                        <input type="password" id="password" class="form-input" data-translate-placeholder="minimumPassword" placeholder="Минимум 6 символов" required>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label" for="phone">
-                            <i class="fas fa-phone"></i> Номер телефона
+                            <i class="fas fa-phone"></i> <span data-translate="phoneNumber">Номер телефона</span>
                         </label>
-                        <input type="tel" id="phone" class="form-input" placeholder="+7 (999) 123-45-67" required>
+                        <input type="tel" id="phone" class="form-input" data-translate-placeholder="phoneFormat" placeholder="+7 (999) 123-45-67" required>
                     </div>
 
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary" id="register-btn">
                             <i class="fas fa-user-plus"></i>
-                            Зарегистрироваться
+                            <span data-translate="register">Зарегистрироваться</span>
                         </button>
                     </div>
                 </form>
 
                 <div style="text-align: center; margin-top: 24px; color: #666;">
-                    Уже есть аккаунт? 
-                    <a href="#" id="login-link" style="color: #667eea; text-decoration: none; font-weight: 500;">
+                    <span data-translate="alreadyHaveAccount">Уже есть аккаунт?</span> 
+                    <a href="#" id="login-link" style="color: #667eea; text-decoration: none; font-weight: 500;" data-translate="login">
                         Войти
                     </a>
                 </div>
@@ -521,17 +564,17 @@
             <!-- SMS Verification -->
             <div class="form-section" id="sms-section">
                 <h2 style="text-align: center; margin-bottom: 32px; color: #333; font-weight: 600;">
-                    <i class="fas fa-sms"></i> Подтверждение SMS
+                    <i class="fas fa-sms"></i> <span data-translate="smsVerification">Подтверждение SMS</span>
                 </h2>
                 
-                <div style="text-align: center; margin-bottom: 32px; color: #666;">
+                <div style="text-align: center; margin-bottom: 32px; color: #666;" data-translate="smsCodeDescription">
                     Мы отправили код подтверждения на ваш номер телефона
                 </div>
 
                 <form id="sms-form">
                     <div class="form-group">
                         <label class="form-label" for="sms-code">
-                            <i class="fas fa-key"></i> SMS код
+                            <i class="fas fa-key"></i> <span data-translate="smsCode">SMS код</span>
                         </label>
                         <input type="text" id="sms-code" class="form-input" placeholder="123456" maxlength="6" required>
                     </div>
@@ -539,11 +582,11 @@
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" id="back-to-register">
                             <i class="fas fa-arrow-left"></i>
-                            Назад
+                            <span data-translate="back">Назад</span>
                         </button>
                         <button type="submit" class="btn btn-primary" id="verify-btn">
                             <i class="fas fa-check"></i>
-                            Подтвердить
+                            <span data-translate="confirm">Подтвердить</span>
                         </button>
                     </div>
                 </form>
@@ -656,16 +699,163 @@
     </a>
 
     <script>
+        // Translation system
+        const translations = {
+            uz: {
+                title: "AI Call Center - Aqlli Qo'ng'iroq Markazi",
+                subtitle: "Sun'iy intellekt bilan aqlli qo'ng'iroq markazi",
+                step1: "Ro'yxatdan o'tish",
+                step2: "SMS Kod",
+                step3: "Maslahat",
+                createAccount: "Hisob yaratish",
+                emailAddress: "Email manzil",
+                password: "Parol",
+                phoneNumber: "Telefon raqam",
+                register: "Ro'yxatdan o'tish",
+                alreadyHaveAccount: "Hisobingiz bormi?",
+                login: "Kirish",
+                smsVerification: "SMS tasdiqlash",
+                smsCodeSent: "SMS kod telefon raqamingizga yuborildi!",
+                smsCodeDescription: "Telefon raqamingizga tasdiqlash kodini yubordik",
+                smsCode: "SMS kod",
+                back: "Orqaga",
+                confirm: "Tasdiqlash",
+                consultation: "Maslahat",
+                consultationDescription: "Bizning AI mutaxassisimiz bilan gaplashing",
+                yourTempPhone: "Sizning vaqtinchalik telefon raqamingiz:",
+                callNow: "Hozir qo'ng'iroq qiling",
+                timeRemaining: "Qolgan vaqt:",
+                aiConsultant: "AI Maslahatchi",
+                aiConsultantDesc: "Aqlli yordamchi biznesingizni tahlil qiladi va avtomatlashtirish uchun yechimlar taklif qiladi",
+                voiceCalls: "Ovozli qo'ng'iroqlar",
+                voiceCallsDesc: "Har bir mijozga shaxsiy yondashuv bilan haqiqiy telefon maslahatlari",
+                automation: "Avtomatlashtirish",
+                automationDesc: "Biznesingiz samaradorligini oshirish uchun avtomatik jarayonlarni sozlash",
+                adminPanel: "Admin panel",
+                minimumPassword: "Kamida 6 ta belgi",
+                phoneFormat: "+7 (999) 123-45-67"
+            },
+            ru: {
+                title: "AI Call Center - Умный Колл-Центр",
+                subtitle: "Умный колл-центр с искусственным интеллектом",
+                step1: "Регистрация",
+                step2: "SMS Код",
+                step3: "Консультация",
+                createAccount: "Создать аккаунт",
+                emailAddress: "Email адрес",
+                password: "Пароль",
+                phoneNumber: "Номер телефона",
+                register: "Зарегистрироваться",
+                alreadyHaveAccount: "Уже есть аккаунт?",
+                login: "Войти",
+                smsVerification: "Подтверждение SMS",
+                smsCodeSent: "SMS код отправлен на ваш номер телефона!",
+                smsCodeDescription: "Мы отправили код подтверждения на ваш номер телефона",
+                smsCode: "SMS код",
+                back: "Назад",
+                confirm: "Подтвердить",
+                consultation: "Консультация",
+                consultationDescription: "Поговорите с нашим AI специалистом",
+                yourTempPhone: "Ваш временный номер телефона:",
+                callNow: "Позвонить сейчас",
+                timeRemaining: "Осталось времени:",
+                aiConsultant: "ИИ Консультант",
+                aiConsultantDesc: "Умный помощник анализирует ваш бизнес и предлагает решения для автоматизации",
+                voiceCalls: "Голосовые Звонки",
+                voiceCallsDesc: "Реальные телефонные консультации с персональным подходом к каждому клиенту",
+                automation: "Автоматизация",
+                automationDesc: "Настройка автоматических процессов для повышения эффективности вашего бизнеса",
+                adminPanel: "Админ панель",
+                minimumPassword: "Минимум 6 символов",
+                phoneFormat: "+7 (999) 123-45-67"
+            },
+            en: {
+                title: "AI Call Center - Smart Call Center",
+                subtitle: "Smart call center with artificial intelligence",
+                step1: "Registration",
+                step2: "SMS Code",
+                step3: "Consultation",
+                createAccount: "Create Account",
+                emailAddress: "Email Address",
+                password: "Password",
+                phoneNumber: "Phone Number",
+                register: "Register",
+                alreadyHaveAccount: "Already have an account?",
+                login: "Login",
+                smsVerification: "SMS Verification",
+                smsCodeSent: "SMS code sent to your phone number!",
+                smsCodeDescription: "We sent a verification code to your phone number",
+                smsCode: "SMS Code",
+                back: "Back",
+                confirm: "Confirm",
+                consultation: "Consultation",
+                consultationDescription: "Talk to our AI specialist",
+                yourTempPhone: "Your temporary phone number:",
+                callNow: "Call Now",
+                timeRemaining: "Time remaining:",
+                aiConsultant: "AI Consultant",
+                aiConsultantDesc: "Smart assistant analyzes your business and offers automation solutions",
+                voiceCalls: "Voice Calls",
+                voiceCallsDesc: "Real phone consultations with personalized approach to each client",
+                automation: "Automation",
+                automationDesc: "Setting up automatic processes to improve your business efficiency",
+                adminPanel: "Admin Panel",
+                minimumPassword: "Minimum 6 characters",
+                phoneFormat: "+1 (999) 123-45-67"
+            }
+        };
+
         // Global variables
         let currentUser = null;
         let currentStep = 1;
         let timerInterval = null;
+        let currentLanguage = 'uz'; // Default to Uzbek
 
         // API Base URL
         const API_BASE = '/api/v1';
 
+        // Language functions
+        function changeLanguage() {
+            const selector = document.getElementById('languageSelector');
+            currentLanguage = selector.value;
+            localStorage.setItem('selectedLanguage', currentLanguage);
+            updatePageLanguage();
+        }
+
+        function updatePageLanguage() {
+            const t = translations[currentLanguage];
+            
+            // Update document title
+            document.title = t.title;
+            
+            // Update all elements with data-translate attribute
+            document.querySelectorAll('[data-translate]').forEach(element => {
+                const key = element.getAttribute('data-translate');
+                if (t[key]) {
+                    element.textContent = t[key];
+                }
+            });
+            
+            // Update placeholders
+            document.querySelectorAll('[data-translate-placeholder]').forEach(element => {
+                const key = element.getAttribute('data-translate-placeholder');
+                if (t[key]) {
+                    element.placeholder = t[key];
+                }
+            });
+        }
+
+        function initializeLanguage() {
+            // Load saved language or default to Uzbek
+            const savedLanguage = localStorage.getItem('selectedLanguage') || 'uz';
+            currentLanguage = savedLanguage;
+            document.getElementById('languageSelector').value = savedLanguage;
+            updatePageLanguage();
+        }
+
         // Initialize app
         document.addEventListener('DOMContentLoaded', function() {
+            initializeLanguage();
             initializeApp();
             setupEventListeners();
         });
@@ -711,7 +901,7 @@
                 registerBtn.innerHTML = '<div class="loading"></div> Регистрация...';
                 registerBtn.disabled = true;
                 
-                const response = await fetch(`${API_BASE}/auth/register`, {
+                const response = await fetch(`${API_BASE}/client/register`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -751,7 +941,7 @@
                 verifyBtn.innerHTML = '<div class="loading"></div> Проверка...';
                 verifyBtn.disabled = true;
                 
-                const response = await fetch(`${API_BASE}/auth/verify-sms`, {
+                const response = await fetch(`${API_BASE}/client/verify-sms`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -781,7 +971,7 @@
 
         async function autoLogin() {
             try {
-                const response = await fetch(`${API_BASE}/auth/login`, {
+                const response = await fetch(`${API_BASE}/client/login`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -818,7 +1008,7 @@
                 loginBtn.innerHTML = '<div class="loading"></div> Вход...';
                 loginBtn.disabled = true;
                 
-                const response = await fetch(`${API_BASE}/auth/login`, {
+                const response = await fetch(`${API_BASE}/client/login`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

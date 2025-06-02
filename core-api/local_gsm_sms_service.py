@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 import structlog
 from sqlmodel import Session, select
 
-from database import get_session
+from database import get_db_manager
 from models import SMSMessage, SMSStatus, Modem, ModemStatus, PhoneNumberType
 
 logger = structlog.get_logger(__name__)
@@ -256,7 +256,7 @@ class LocalGSMSMSService:
     async def initialize(self):
         """Initialize GSM modules from database"""
         try:
-            with Session(get_session().bind) as session:
+            with get_db_manager().get_session() as session:
                 # Get all company modems (these are our GSM modules)
                 stmt = select(Modem).where(
                     Modem.phone_number_type == PhoneNumberType.COMPANY,
@@ -332,7 +332,7 @@ class LocalGSMSMSService:
                 result = await module.send_sms(phone_number, message)
                 
                 # Store in database
-                with Session(get_session().bind) as session:
+                with get_db_manager().get_session() as session:
                     sms_message = SMSMessage(
                         phone_number=phone_number,
                         message=message,
@@ -383,7 +383,7 @@ class LocalGSMSMSService:
         message = f"Ваш код подтверждения для AI Call Center: {verification_code}. Код действителен 10 минут."
         
         # Store in database
-        with Session(get_session().bind) as session:
+        with get_db_manager().get_session() as session:
             sms_message = SMSMessage(
                 phone_number=phone_number,
                 message=message,
@@ -409,7 +409,7 @@ class LocalGSMSMSService:
     async def verify_code(self, phone_number: str, code: str) -> Dict[str, Any]:
         """Verify SMS code"""
         
-        with Session(get_session().bind) as session:
+        with get_db_manager().get_session() as session:
             # Find the most recent SMS for this phone number
             stmt = select(SMSMessage).where(
                 SMSMessage.phone_number == phone_number,
@@ -460,7 +460,7 @@ class LocalGSMSMSService:
                 result = await module.send_sms(phone_number, message)
                 
                 # Store in database
-                with Session(get_session().bind) as session:
+                with get_db_manager().get_session() as session:
                     sms_message = SMSMessage(
                         phone_number=phone_number,
                         message=message,
