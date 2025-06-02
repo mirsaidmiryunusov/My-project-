@@ -24,6 +24,7 @@
   "author": "GeminiVoiceConnect Team",
   "license": "MIT",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^5.7.1",
     "@types/stripe": "^8.0.416",
     "axios": "^1.6.2",
@@ -41,7 +42,7 @@
     "moment": "^2.29.4",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
-    "nodemailer": "^6.9.7",
+    "nodemailer": "^6.10.1",
     "redis": "^4.6.11",
     "socket.io": "^4.7.4",
     "stripe": "^18.2.0",

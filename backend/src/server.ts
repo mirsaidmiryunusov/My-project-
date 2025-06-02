@@ -32,6 +32,11 @@ import analyticsRoutes from './routes/analytics';
 import dashboardRoutes from './routes/dashboard';
 import subscriptionRoutes from './routes/subscription';
 
+// Import new routes for client registration and AI calls
+const registrationRoutes = require('./routes/registration');
+const aiCallRoutes = require('./routes/calls');
+const adminRoutes = require('./routes/admin');
+
 // Import services
 import { DatabaseService } from './services/database';
 import { SocketService } from './services/socket';
@@ -137,6 +142,8 @@ class GeminiVoiceConnectServer {
         description: 'AI-Powered Call Center Management API',
         endpoints: {
           auth: '/api/auth',
+          registration: '/api/registration',
+          aiCalls: '/api/ai-calls',
           users: '/api/users',
           calls: '/api/calls',
           customers: '/api/customers',
@@ -144,6 +151,7 @@ class GeminiVoiceConnectServer {
           analytics: '/api/analytics',
           dashboard: '/api/dashboard',
           subscription: '/api/subscription',
+          admin: '/api/admin',
         },
         documentation: '/api/docs',
       });
@@ -155,6 +163,8 @@ class GeminiVoiceConnectServer {
 
     // Public routes (no authentication required)
     apiRouter.use('/auth', authRoutes);
+    apiRouter.use('/registration', registrationRoutes); // Client registration system
+    apiRouter.use('/ai-calls', aiCallRoutes); // AI call handling
 
     // Protected routes (authentication required)
     apiRouter.use('/users', authMiddleware, userRoutes);
@@ -164,6 +174,7 @@ class GeminiVoiceConnectServer {
     apiRouter.use('/analytics', authMiddleware, analyticsRoutes);
     apiRouter.use('/dashboard', authMiddleware, dashboardRoutes);
     apiRouter.use('/subscription', subscriptionRoutes);
+    apiRouter.use('/admin', authMiddleware, adminRoutes); // Admin panel
 
     this.app.use('/api', apiRouter);
   }

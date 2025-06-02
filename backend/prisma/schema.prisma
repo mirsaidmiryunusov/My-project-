@@ -11,26 +11,36 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(cuid())
-  email       String   @unique
-  password    String
-  name        String
-  role        String   @default("AGENT")
-  tenantId    String
-  avatar      String?
-  isActive    Boolean  @default(true)
-  lastLogin   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                String   @id @default(cuid())
+  email             String   @unique
+  password          String
+  name              String
+  phone             String?
+  role              String   @default("AGENT")
+  tenantId          String
+  avatar            String?
+  isActive          Boolean  @default(true)
+  lastLogin         DateTime?
+  emailVerified     Boolean  @default(false)
+  emailVerifyToken  String?
+  assignedNumber    String?  @unique
+  registrationStep  String   @default("email_verification") // email_verification, phone_verification, call_scheduled, call_completed, analysis_done, subscription_offered
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   // Relationships
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  permissions UserPermission[]
-  preferences UserPreferences?
-  sessions    UserSession[]
-  calls       Call[]
-  campaigns   Campaign[]
-  customers   Customer[]
+  tenant            Tenant   @relation(fields: [tenantId], references: [id])
+  permissions       UserPermission[]
+  preferences       UserPreferences?
+  sessions          UserSession[]
+  calls             Call[]
+  campaigns         Campaign[]
+  customers         Customer[]
+  callSessions      CallSession[]
+  aiAnalysis        AIAnalysis[]
+  subscriptions     Subscription[]
+  savingsCalculation SavingsCalculation?
+  companyNumber     CompanyNumber?
 
   @@map("users")
 }
@@ -207,4 +217,109 @@ model SystemMetrics {
   metadata    String?
 
   @@map("system_metrics")
+}
+
+model CompanyNumber {
+  id          String   @id @default(cuid())
+  number      String   @unique
+  isAvailable Boolean  @default(true)
+  assignedTo  String?  @unique
+  modemId     String?
+  geminiApiKey String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relationships
+  user        User?    @relation(fields: [assignedTo], references: [id])
+
+  @@map("company_numbers")
+}
+
+model CallSession {
+  id              String   @id @default(cuid())
+  userId          String
+  companyNumber   String
+  clientPhone     String
+  status          String   @default("scheduled") // scheduled, in_progress, completed, failed
+  startTime       DateTime?
+  endTime         DateTime?
+  duration        Int?     // в секундах
+  recordingUrl    String?
+  transcript      String?
+  aiResponse      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relationships
+  user            User     @relation(fields: [userId], references: [id])
+
+  @@map("call_sessions")
+}
+
+model AIAnalysis {
+  id                String   @id @default(cuid())
+  userId            String
+  callSessionId     String?
+  clientNeeds       String?  // Что хочет клиент
+  recommendedFeatures String? // Рекомендуемые функции (JSON)
+  generatedPrompts  String?  // Сгенерированные промпты (JSON)
+  automationSuggestions String? // Предложения по автоматизации (JSON)
+  geminiResponse    String?  // Полный ответ от Gemini
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relationships
+  user              User     @relation(fields: [userId], references: [id])
+
+  @@map("ai_analysis")
+}
+
+model SavingsCalculation {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  estimatedTimeSavings  Int?     // часов в месяц
+  estimatedMoneySavings Float?   // долларов в месяц
+  currentCosts          Float?   // текущие расходы
+  potentialSavings      Float?   // потенциальная экономия
+  automationLevel       String?  // low, medium, high
+  calculationData       String?  // детальные данные расчета (JSON)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relationships
+  user                  User     @relation(fields: [userId], references: [id])
+
+  @@map("savings_calculations")
+}
+
+model Subscription {
+  id            String   @id @default(cuid())
+  userId        String
+  plan          String   // basic, pro, enterprise
+  status        String   @default("pending") // pending, active, cancelled, expired
+  startDate     DateTime?
+  endDate       DateTime?
+  price         Float
+  features      String?  // включенные функции (JSON)
+  paymentMethod String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relationships
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@map("subscriptions")
+}
+
+model ModemConfig {
+  id           String   @id @default(cuid())
+  modemId      String   @unique
+  geminiApiKey String?
+  isActive     Boolean  @default(true)
+  assignedNumber String?
+  maxConcurrentCalls Int @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("modem_configs")
 }
