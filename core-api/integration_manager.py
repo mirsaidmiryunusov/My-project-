@@ -31,11 +31,10 @@ from sqlmodel import Session, select
 from fastapi import HTTPException, status
 from cryptography.fernet import Fernet
 
-from .config import get_settings
-from .database import get_session
-from .models import (
-    Tenant, Integration, IntegrationConfig, IntegrationLog,
-    Customer, Lead, Order, CallLog
+from config import get_settings
+from database import get_session
+from models import (
+    Tenant, Integration, Lead, Call
 )
 
 logger = logging.getLogger(__name__)
@@ -96,7 +95,7 @@ class IntegrationManager:
     """
     
     def __init__(self):
-        self.encryption_key = settings.ENCRYPTION_KEY.encode()
+        self.encryption_key = settings.encryption_key.encode()
         self.cipher = Fernet(self.encryption_key)
         self.http_client = httpx.AsyncClient(timeout=30.0)
         self.integration_handlers = self._initialize_handlers()

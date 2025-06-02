@@ -97,8 +97,8 @@ class RevenueEngine:
         self.last_optimization_time = {}
     
     def calculate_revenue_metrics(self, tenant_id: UUID, 
-                                 period_days: int = 30,
-                                 session: Session) -> Dict[str, Any]:
+                                 session: Session,
+                                 period_days: int = 30) -> Dict[str, Any]:
         """
         Calculate comprehensive revenue metrics for tenant.
         
@@ -199,8 +199,8 @@ class RevenueEngine:
                 detail="Failed to calculate revenue metrics"
             )
     
-    def optimize_pricing(self, tenant_id: UUID, strategy: PricingStrategy,
-                        session: Session) -> Dict[str, Any]:
+    def optimize_pricing(self, tenant_id: UUID, session: Session,
+                        strategy: PricingStrategy = PricingStrategy.VALUE_BASED) -> Dict[str, Any]:
         """
         Optimize pricing strategy for maximum revenue.
         
@@ -254,8 +254,8 @@ class RevenueEngine:
                 detail="Failed to optimize pricing"
             )
     
-    def predict_customer_lifetime_value(self, tenant_id: UUID, lead_id: UUID,
-                                      session: Session) -> Dict[str, Any]:
+    def predict_customer_lifetime_value(self, tenant_id: UUID, session: Session,
+                                      lead_id: UUID) -> Dict[str, Any]:
         """
         Predict customer lifetime value using ML models.
         
@@ -317,8 +317,8 @@ class RevenueEngine:
             )
     
     def optimize_revenue_strategy(self, tenant_id: UUID, 
-                                 strategy: RevenueOptimizationStrategy,
-                                 session: Session) -> Dict[str, Any]:
+                                 session: Session,
+                                 strategy: RevenueOptimizationStrategy = RevenueOptimizationStrategy.BALANCED_GROWTH) -> Dict[str, Any]:
         """
         Optimize overall revenue strategy.
         
@@ -368,8 +368,8 @@ class RevenueEngine:
                 detail="Failed to optimize revenue strategy"
             )
     
-    def generate_revenue_forecast(self, tenant_id: UUID, forecast_days: int = 90,
-                                session: Session) -> Dict[str, Any]:
+    def generate_revenue_forecast(self, tenant_id: UUID, session: Session,
+                                forecast_days: int = 90) -> Dict[str, Any]:
         """
         Generate revenue forecast using predictive analytics.
         

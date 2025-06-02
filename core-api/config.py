@@ -8,11 +8,11 @@ environment-specific settings for Project GeminiVoiceConnect.
 
 import os
 from typing import Optional, List, Dict, Any
-from pydantic import BaseSettings, validator, Field
-from pydantic_settings import BaseSettings as PydanticBaseSettings
+from pydantic_settings import BaseSettings
+from pydantic import validator, Field
 
 
-class CoreAPIConfig(PydanticBaseSettings):
+class CoreAPIConfig(BaseSettings):
     """
     Comprehensive configuration class for core-api microservice.
     
@@ -33,22 +33,23 @@ class CoreAPIConfig(PydanticBaseSettings):
     workers: int = Field(default=1, description="Number of worker processes")
     
     # Database Configuration
-    database_url: str = Field(..., description="Database connection URL")
+    database_url: str = Field(default="sqlite:///./ai_call_center.db", description="Database connection URL")
     db_pool_size: int = Field(default=20, description="Database connection pool size")
     db_max_overflow: int = Field(default=30, description="Database max overflow connections")
     db_echo: bool = Field(default=False, description="Database query logging")
     
     # Redis Configuration
-    redis_url: str = Field(..., description="Redis connection URL")
+    redis_url: str = Field(default="redis://localhost:6379/0", description="Redis connection URL")
     redis_pool_size: int = Field(default=50, description="Redis connection pool size")
     redis_timeout: int = Field(default=5, description="Redis connection timeout")
     
     # Security Configuration
-    secret_key: str = Field(..., description="Application secret key")
-    jwt_secret_key: str = Field(..., description="JWT secret key")
+    secret_key: str = Field(default="demo-secret-key-change-in-production", description="Application secret key")
+    jwt_secret_key: str = Field(default="demo-jwt-secret-key-change-in-production", description="JWT secret key")
     jwt_algorithm: str = Field(default="HS256", description="JWT algorithm")
     jwt_expiration_hours: int = Field(default=24, description="JWT token expiration hours")
     password_hash_rounds: int = Field(default=12, description="Password hashing rounds")
+    encryption_key: str = Field(default="8yylVG_tHWHkdhc328ng3HcDewGDnXcF8IynbdWqRzk=", description="Encryption key for sensitive data")
     
     # API Configuration
     api_prefix: str = Field(default="/api/v1", description="API prefix")
@@ -222,3 +223,15 @@ class CoreAPIConfig(PydanticBaseSettings):
             "hipaa": self.hipaa_enabled,
             "audit_log": self.audit_log_enabled
         }
+
+
+# Global settings instance
+_settings: Optional[CoreAPIConfig] = None
+
+
+def get_settings() -> CoreAPIConfig:
+    """Get global settings instance."""
+    global _settings
+    if _settings is None:
+        _settings = CoreAPIConfig()
+    return _settings

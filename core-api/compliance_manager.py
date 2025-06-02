@@ -30,11 +30,10 @@ from sqlmodel import Session, select, and_, or_
 from fastapi import HTTPException, status
 from cryptography.fernet import Fernet
 
-from .config import get_settings
-from .database import get_session
-from .models import (
-    Tenant, Customer, CallLog, ComplianceLog, ConsentRecord,
-    DataProcessingRecord, AuditLog
+from config import get_settings
+from database import get_session
+from models import (
+    Tenant, Call, AuditLog
 )
 
 logger = logging.getLogger(__name__)
@@ -139,7 +138,7 @@ class ComplianceManager:
     """
     
     def __init__(self):
-        self.encryption_key = settings.ENCRYPTION_KEY.encode()
+        self.encryption_key = settings.encryption_key.encode()
         self.cipher = Fernet(self.encryption_key)
         self.compliance_rules = self._initialize_compliance_rules()
         
@@ -184,12 +183,12 @@ class ComplianceManager:
         processing_purposes: List[ProcessingPurpose],
         consent_method: str,
         ip_address: Optional[str] = None
-    ) -> ConsentRecord:
+    ) -> AuditLog:
         """
         Record customer consent for data processing.
         
         Args:
-            customer_id: Customer identifier
+            customer_id: Tenant identifier
             tenant_id: Tenant identifier
             processing_purposes: List of processing purposes
             consent_method: Method of consent collection
@@ -201,15 +200,15 @@ class ComplianceManager:
         try:
             with get_session() as session:
                 # Check if customer exists
-                customer = session.get(Customer, customer_id)
+                customer = session.get(Tenant, customer_id)
                 if not customer or customer.tenant_id != tenant_id:
                     raise HTTPException(
                         status_code=status.HTTP_404_NOT_FOUND,
-                        detail="Customer not found"
+                        detail="Tenant not found"
                     )
                 
                 # Create consent record
-                consent_record = ConsentRecord(
+                consent_record = AuditLog(
                     customer_id=customer_id,
                     tenant_id=tenant_id,
                     processing_purposes=processing_purposes,
@@ -256,7 +255,7 @@ class ComplianceManager:
         Withdraw customer consent for data processing.
         
         Args:
-            customer_id: Customer identifier
+            customer_id: Tenant identifier
             tenant_id: Tenant identifier
             processing_purposes: Optional specific purposes to withdraw
             
@@ -266,11 +265,11 @@ class ComplianceManager:
         try:
             with get_session() as session:
                 # Get active consent records
-                query = select(ConsentRecord).where(
+                query = select(AuditLog).where(
                     and_(
-                        ConsentRecord.customer_id == customer_id,
-                        ConsentRecord.tenant_id == tenant_id,
-                        ConsentRecord.consent_status == ConsentStatus.GIVEN
+                        AuditLog.customer_id == customer_id,
+                        AuditLog.tenant_id == tenant_id,
+                        AuditLog.consent_status == ConsentStatus.GIVEN
                     )
                 )
                 
@@ -320,7 +319,7 @@ class ComplianceManager:
         Process data subject request under GDPR.
         
         Args:
-            customer_id: Customer identifier
+            customer_id: Tenant identifier
             tenant_id: Tenant identifier
             request_type: Type of data subject right
             additional_info: Additional request information
@@ -333,11 +332,11 @@ class ComplianceManager:
             
             with get_session() as session:
                 # Verify customer exists
-                customer = session.get(Customer, customer_id)
+                customer = session.get(Tenant, customer_id)
                 if not customer or customer.tenant_id != tenant_id:
                     raise HTTPException(
                         status_code=status.HTTP_404_NOT_FOUND,
-                        detail="Customer not found"
+                        detail="Tenant not found"
                     )
                 
                 # Create request record
@@ -576,34 +575,34 @@ class ComplianceManager:
             with get_session() as session:
                 # Get compliance logs for period
                 compliance_logs = session.exec(
-                    select(ComplianceLog).where(
+                    select(AuditLog).where(
                         and_(
-                            ComplianceLog.tenant_id == tenant_id,
-                            ComplianceLog.framework == framework,
-                            ComplianceLog.timestamp >= start_date,
-                            ComplianceLog.timestamp <= end_date
+                            AuditLog.tenant_id == tenant_id,
+                            AuditLog.framework == framework,
+                            AuditLog.timestamp >= start_date,
+                            AuditLog.timestamp <= end_date
                         )
                     )
                 ).all()
                 
                 # Get consent records
                 consent_records = session.exec(
-                    select(ConsentRecord).where(
+                    select(AuditLog).where(
                         and_(
-                            ConsentRecord.tenant_id == tenant_id,
-                            ConsentRecord.consent_timestamp >= start_date,
-                            ConsentRecord.consent_timestamp <= end_date
+                            AuditLog.tenant_id == tenant_id,
+                            AuditLog.consent_timestamp >= start_date,
+                            AuditLog.consent_timestamp <= end_date
                         )
                     )
                 ).all()
                 
                 # Get data processing records
                 processing_records = session.exec(
-                    select(DataProcessingRecord).where(
+                    select(AuditLog).where(
                         and_(
-                            DataProcessingRecord.tenant_id == tenant_id,
-                            DataProcessingRecord.created_at >= start_date,
-                            DataProcessingRecord.created_at <= end_date
+                            AuditLog.tenant_id == tenant_id,
+                            AuditLog.created_at >= start_date,
+                            AuditLog.created_at <= end_date
                         )
                     )
                 ).all()
@@ -679,10 +678,10 @@ class ComplianceManager:
         cutoff_date = datetime.utcnow() - timedelta(days=retention_days)
         
         old_records = session.exec(
-            select(CallLog).where(
+            select(Call).where(
                 and_(
-                    CallLog.tenant_id == tenant_id,
-                    CallLog.start_time < cutoff_date
+                    Call.tenant_id == tenant_id,
+                    Call.start_time < cutoff_date
                 )
             )
         ).all()
@@ -700,12 +699,12 @@ class ComplianceManager:
         
         # Check consent compliance
         customers_without_consent = session.exec(
-            select(Customer).where(
+            select(Tenant).where(
                 and_(
-                    Customer.tenant_id == tenant_id,
-                    ~Customer.id.in_(
-                        select(ConsentRecord.customer_id).where(
-                            ConsentRecord.consent_status == ConsentStatus.GIVEN
+                    Tenant.tenant_id == tenant_id,
+                    ~Tenant.id.in_(
+                        select(AuditLog.customer_id).where(
+                            AuditLog.consent_status == ConsentStatus.GIVEN
                         )
                     )
                 )
@@ -756,17 +755,17 @@ class ComplianceManager:
     
     async def _collect_customer_data(self, session: Session, customer_id: str) -> Dict[str, Any]:
         """Collect all customer data for access request"""
-        customer = session.get(Customer, customer_id)
+        customer = session.get(Tenant, customer_id)
         if not customer:
             return {}
         
         # Get related data
         call_logs = session.exec(
-            select(CallLog).where(CallLog.customer_id == customer_id)
+            select(Call).where(Call.customer_id == customer_id)
         ).all()
         
         consent_records = session.exec(
-            select(ConsentRecord).where(ConsentRecord.customer_id == customer_id)
+            select(AuditLog).where(AuditLog.customer_id == customer_id)
         ).all()
         
         return {
@@ -800,7 +799,7 @@ class ComplianceManager:
     async def _erase_customer_data(self, session: Session, customer_id: str, tenant_id: str):
         """Erase customer data for right to be forgotten"""
         # Anonymize customer record
-        customer = session.get(Customer, customer_id)
+        customer = session.get(Tenant, customer_id)
         if customer and customer.tenant_id == tenant_id:
             customer.first_name = "ERASED"
             customer.last_name = "ERASED"
@@ -811,7 +810,7 @@ class ComplianceManager:
         
         # Anonymize call logs
         call_logs = session.exec(
-            select(CallLog).where(CallLog.customer_id == customer_id)
+            select(Call).where(Call.customer_id == customer_id)
         ).all()
         
         for call in call_logs:
@@ -872,7 +871,7 @@ class ComplianceManager:
         
         return measures
     
-    def _analyze_consent_records(self, consent_records: List[ConsentRecord]) -> Dict[str, Any]:
+    def _analyze_consent_records(self, consent_records: List[AuditLog]) -> Dict[str, Any]:
         """Analyze consent records for reporting"""
         total_consents = len(consent_records)
         given_consents = len([r for r in consent_records if r.consent_status == ConsentStatus.GIVEN])
@@ -885,7 +884,7 @@ class ComplianceManager:
             "consent_rate": (given_consents / total_consents * 100) if total_consents > 0 else 0
         }
     
-    def _analyze_processing_records(self, processing_records: List[DataProcessingRecord]) -> Dict[str, Any]:
+    def _analyze_processing_records(self, processing_records: List[AuditLog]) -> Dict[str, Any]:
         """Analyze data processing records for reporting"""
         return {
             "total_processing_activities": len(processing_records),
@@ -896,8 +895,8 @@ class ComplianceManager:
     def _generate_compliance_recommendations(
         self,
         framework: ComplianceFramework,
-        compliance_logs: List[ComplianceLog],
-        consent_records: List[ConsentRecord]
+        compliance_logs: List[AuditLog],
+        consent_records: List[AuditLog]
     ) -> List[str]:
         """Generate compliance recommendations"""
         recommendations = []
@@ -922,7 +921,7 @@ class ComplianceManager:
         """Log compliance event for audit trail"""
         try:
             with get_session() as session:
-                log_entry = ComplianceLog(
+                log_entry = AuditLog(
                     tenant_id=tenant_id,
                     framework=framework,
                     event_type=event_type,

@@ -118,7 +118,7 @@ class DatabaseManager:
         """Create all database tables."""
         try:
             # Import all models to ensure they're registered
-            from models import *
+            import models
             
             if self.async_engine:
                 async with self.async_engine.begin() as conn:
